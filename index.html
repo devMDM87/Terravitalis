@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraVitalis - Global Data Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet.js for interactive maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e7eb;
+        }
+        #map-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1a202c; /* Fallback for map tiles */
+        }
+        /* Style for Leaflet attribution */
+        .leaflet-control-attribution {
+            background: rgba(23, 23, 23, 0.7) !important;
+            color: #a0aec0 !important;
+        }
+        .leaflet-control-attribution a {
+            color: #cbd5e0 !important;
+        }
+        .glass-panel {
+            background: rgba(23, 23, 23, 0.8);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hex-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 4px;
+            pointer-events: all;
+            transform: perspective(1000px) rotateX(30deg);
+            transform-origin: bottom center;
+            opacity: 0;
+            animation: fadeInGrid 0.7s ease-out forwards;
+        }
+        @keyframes fadeInGrid {
+            to {
+                opacity: 1;
+                transform: perspective(1000px) rotateX(0deg);
+            }
+        }
+        .hex {
+            position: relative;
+            width: 80px;
+            height: 92.38px;
+            margin: 0 auto;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hex:hover {
+            transform: scale(1.15);
+            z-index: 10;
+        }
+        .hex.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px #a78bfa;
+            z-index: 5;
+        }
+        .hex-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+            pointer-events: none; /* So it doesn't interfere with hex hover */
+        }
+        #hex-tooltip {
+            position: absolute;
+            display: none;
+            padding: 8px 12px;
+            font-size: 12px;
+            z-index: 9999;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .active-toggle { background-color: #4f46e5; color: white; }
+        .inactive-toggle { background-color: #374151; color: #d1d5db; }
+        .active-rank-item { background-color: rgba(79, 70, 229, 0.3); border-left: 2px solid #6366f1; }
+        .gemini-output h4 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .gemini-output ul { list-style-position: inside; list-style-type: disc; padding-left: 0.5rem; margin-top: 0.5rem; space-y: 0.25rem; }
+        .gemini-output strong { font-weight: 600; color: #c4b5fd; }
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #street-view-placeholder { height: 150px; width: 100%; border-radius: 0.5rem; background-color: #1f2937; display: flex; align-items: center; justify-content: center; text-align: center;}
+    </style>
+</head>
+<body class="overflow-hidden h-screen">
+
+    <div id="app" class="h-full w-full flex flex-col relative">
+        <div id="map-container"></div>
+        <div id="hex-tooltip" class="glass-panel rounded-md text-white"></div>
+
+        <header class="w-full p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4 sm:gap-0 z-[1001] absolute top-0 left-0 pointer-events-none">
+            <div class="flex items-center justify-between w-full pointer-events-auto sm:w-auto">
+                <div class="flex items-center space-x-2">
+                    <button id="menu-toggle-btn" class="p-2 rounded-lg glass-panel hover:bg-gray-700 transition-colors border-indigo-600">
+                        <svg class="w-6 h-6 text-white" id="menu-open-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        <svg class="w-6 h-6 text-white hidden" id="menu-close-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400" viewBox="0 0 200 200">
+                            <g>
+                                <!-- Octagon Frame -->
+                                <path d="M141.42,29.29,100,10,58.58,29.29,29.29,58.58,10,100l19.29,41.42L58.58,170.71,100,190l41.42-19.29L170.71,141.42,190,100,170.71,58.58Z" fill="none" stroke="currentColor" stroke-width="12"/>
+                                <!-- Tree -->
+                                <g fill="currentColor" stroke="none">
+                                    <!-- Trunk -->
+                                    <path d="M94,170 C94,160 92,120 92,110 H108 C108,120 106,160 106,170 Z" />
+                                    <!-- Main Branches -->
+                                    <path d="M100,112 C85,108 78,95 78,80" stroke="currentColor" stroke-width="10" fill="none" stroke-linecap="round"/>
+                                    <path d="M100,112 C115,108 122,95 122,80" stroke="currentColor" stroke-width="10" fill="none" stroke-linecap="round"/>
+                                    <path d="M96,110 C96,100 90,95 85,85" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round"/>
+                                    <path d="M104,110 C104,100 110,95 115,85" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round"/>
+                                    <path d="M118,82 C125,75 128,65 125,55" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/>
+                                    <path d="M82,82 C75,75 72,65 75,55" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/>
+                                    <!-- Leaves (as filled paths) -->
+                                    <path d="M95,30 C90,40 95,50 100,50 C105,50 110,40 105,30 Z" />
+                                    <path d="M110,38 C105,48 110,58 115,58 C120,58 125,48 120,38 Z" transform="rotate(20 115 48)"/>
+                                    <path d="M90,38 C85,48 90,58 95,58 C100,58 105,48 100,38 Z" transform="rotate(-20 95 48)"/>
+                                    <path d="M130,55 C125,65 130,75 135,75 C140,75 145,65 140,55 Z" transform="rotate(45 135 65)"/>
+                                    <path d="M70,55 C65,65 70,75 75,75 C80,75 85,65 80,55 Z" transform="rotate(-45 75 65)"/>
+                                    <path d="M140,85 C135,95 140,105 145,105 C150,105 155,95 150,85 Z" transform="rotate(70 145 95)"/>
+                                    <path d="M60,85 C55,95 60,105 65,105 C70,105 75,95 70,85 Z" transform="rotate(-70 65 95)"/>
+                                    <path d="M125,110 C120,120 125,130 130,130 C135,130 140,120 135,110 Z" transform="rotate(100 130 120)"/>
+                                    <path d="M75,110 C70,120 75,130 80,130 C85,130 90,120 85,110 Z" transform="rotate(-100 80 120)"/>
+                                    <path d="M110,80 C105,90 110,100 115,100 C120,100 125,90 120,80 Z" />
+                                    <path d="M90,80 C85,90 90,100 95,100 C100,100 105,90 100,80 Z" />
+                                    <path d="M75,98 C70,108 75,118 80,118 C85,118 90,108 85,98 Z" transform="rotate(-120 80 108)"/>
+                                    <path d="M125,98 C120,108 125,118 130,118 C135,118 140,108 135,98 Z" transform="rotate(120 130 108)"/>
+                                </g>
+                            </g>
+                        </svg>
+                        <div>
+                            <h1 class="text-xl sm:text-3xl font-extrabold text-white">Terra<span class="text-indigo-400">Vitalis</span></h1>
+                            <p class="text-[10px] sm:text-xs text-gray-300 tracking-wider">Nasa Space App <span class="font-semibold text-gray-200">| By Mario Di Muro</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="guide-btn" class="flex items-center space-x-2 glass-panel p-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.546-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="guide-text" class="font-semibold text-sm hidden sm:block">Guide</span>
+                    </button>
+                    <button id="lang-switcher" class="flex items-center space-x-2 glass-panel p-2 rounded-lg hover:bg-gray-700 transition-colors border-indigo-600">
+                        <img id="lang-flag" src="https://flagcdn.com/w20/gb.png" alt="Language flag" class="w-5 h-auto rounded-sm">
+                        <span id="lang-text" class="font-semibold text-sm">EN</span>
+                    </button>
+                </div>
+            </div>
+            <div id="view-toggle" class="glass-panel p-1 rounded-full flex items-center space-x-1 pointer-events-auto w-full max-w-xs self-center sm:w-auto sm:self-auto">
+                <button id="city-view-btn" class="flex-1 px-2 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full transition-colors duration-300">City Readiness (CECR)</button>
+                <button id="neighborhood-view-btn" class="flex-1 px-2 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full transition-colors duration-300">Neighborhood Priority (NSI)</button>
+            </div>
+        </header>
+
+        <aside id="control-panel" class="w-full sm:w-1/4 max-w-sm h-full p-4 space-y-4 overflow-y-auto glass-panel pointer-events-auto absolute top-0 left-0 z-[1002] transform -translate-x-full transition-transform duration-300 ease-in-out">
+            <button id="menu-close-btn-panel" class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl z-10">&times;</button>
+            <div id="city-controls">
+                <h2 id="city-rankings-title" class="text-lg font-semibold mb-2">European City Rankings</h2>
+                <p id="city-rankings-subtitle" class="text-sm text-gray-400 mb-4">Higher CECR scores indicate greater readiness for edible park conversion projects.</p>
+                
+                <button id="cecr-scope-btn" class="w-full text-left p-2 rounded-t-md font-semibold text-sm bg-gray-800 hover:bg-gray-700 flex justify-between items-center">
+                    <span id="cecr-scope-title">Tool Scope (CECR)</span>
+                    <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="cecr-scope-content" class="hidden text-xs text-gray-300 bg-gray-900/50 p-3 rounded-b-md space-y-2"></div>
+
+                <button id="city-data-source-btn" class="w-full text-left p-2 rounded-t-md font-semibold text-sm bg-gray-800 hover:bg-gray-700 flex justify-between items-center mt-4">
+                    <span id="nasa-data-source-title-cecr">NASA Data Sources (CECR)</span>
+                    <svg id="city-arrow" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="city-data-source-content" class="hidden text-xs text-gray-300 bg-gray-900/50 p-3 rounded-b-md space-y-2"></div>
+
+                <div id="city-ranking-list" class="mt-4 space-y-1"></div>
+            </div>
+            <div id="neighborhood-controls" class="hidden">
+                <h2 class="text-lg font-semibold mb-2"><span id="neighborhood-analysis-title">Neighborhood Analysis</span>: <span id="city-name-label" class="text-indigo-400"></span></h2>
+                <p id="neighborhood-analysis-subtitle" class="text-sm text-gray-400 mb-4">Toggle data overlays to understand the NutriShade Index (NSI) composition.</p>
+                <div class="space-y-2">
+                     <button data-layer="nsi" class="w-full text-left p-2 rounded-md font-semibold text-sm layer-toggle" id="layer-nsi">NSI Priority Heatmap</button>
+                     <button data-layer="heat" class="w-full text-left p-2 rounded-md text-sm layer-toggle" id="layer-heat">Heat Burden (LST)</button>
+                     <button data-layer="access" class="w-full text-left p-2 rounded-md text-sm layer-toggle" id="layer-access">Green Access Deficit</button>
+                     <button data-layer="density" class="w-full text-left p-2 rounded-md text-sm layer-toggle" id="layer-density">Population Density</button>
+                </div>
+
+                <button id="nsi-scope-btn" class="w-full text-left p-2 rounded-t-md font-semibold text-sm bg-gray-800 hover:bg-gray-700 flex justify-between items-center mt-4">
+                    <span id="nsi-scope-title">Tool Scope (NSI)</span>
+                    <svg class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="nsi-scope-content" class="hidden text-xs text-gray-300 bg-gray-900/50 p-3 rounded-b-md space-y-2"></div>
+                
+                <button id="neighborhood-data-source-btn" class="w-full text-left p-2 rounded-t-md font-semibold text-sm bg-gray-800 hover:bg-gray-700 flex justify-between items-center mt-4">
+                    <span id="nasa-data-source-title-nsi">NASA Data Sources (NSI)</span>
+                    <svg id="neighborhood-arrow" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="neighborhood-data-source-content" class="hidden text-xs text-gray-300 bg-gray-900/50 p-3 rounded-b-md space-y-2"></div>
+            </div>
+
+            <!-- Gemini API Key Section -->
+            <div id="api-key-section" class="mt-auto pt-4 border-t border-white/10">
+                 <h3 class="text-md font-semibold text-gray-200 mb-2">Enable AI Features</h3>
+                 <p class="text-xs text-gray-400 mb-2">To unlock the AI-powered analysis, please enter your Google Gemini API key below.</p>
+                 <div class="flex items-center space-x-2">
+                     <input type="password" id="api-key-input" class="w-full bg-gray-900/70 border border-gray-700 rounded-md p-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter your Gemini API Key">
+                     <button id="save-api-key-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-3 py-2 rounded-md transition-colors">Save</button>
+                 </div>
+                 <p id="api-key-status" class="text-xs text-green-400 mt-2 hidden">API Key saved successfully!</p>
+            </div>
+        </aside>
+
+        <main class="flex-grow flex h-full pt-36 sm:pt-24 z-[1000] pointer-events-none">
+            <div class="flex-grow h-full relative pointer-events-none">
+                <div id="neighborhood-map-view" class="w-full h-full absolute inset-0 p-4 md:p-8 hidden">
+                    <div class="hex-grid"></div>
+                </div>
+            </div>
+        </main>
+
+        <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-[1001] hidden pointer-events-auto"></div>
+
+        <div id="city-info-panel" class="w-full sm:max-w-md h-full absolute top-0 right-0 transform translate-x-full transition-transform duration-500 ease-in-out glass-panel z-[1001] p-6 overflow-y-auto pointer-events-auto"></div>
+        <div id="neighborhood-info-panel" class="w-full sm:max-w-md h-full absolute top-0 right-0 transform translate-x-full transition-transform duration-500 ease-in-out glass-panel z-[1001] p-6 overflow-y-auto pointer-events-auto"></div>
+        
+        <footer id="legend-and-comparison" class="absolute bottom-0 left-0 w-full p-4 z-[1000] pointer-events-none flex flex-col items-center space-y-4">
+            <div id="data-legend" class="w-full max-w-md mx-auto glass-panel rounded-lg p-3 pointer-events-auto"></div>
+        </footer>
+        
+        <div id="map-layer-switcher" class="absolute right-4 bottom-24 z-[1000] pointer-events-auto flex flex-col space-y-2"></div>
+
+    </div>
+    
+    <!-- Guide Modal -->
+    <div id="guide-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="w-full max-w-3xl h-full max-h-[90vh] glass-panel rounded-lg shadow-lg flex flex-col">
+            <header class="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+                <h2 id="guide-title" class="text-xl font-bold text-white">TerraVitalis Guide</h2>
+                <button id="close-guide-modal" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+            </header>
+            <div class="flex-grow p-6 overflow-y-auto text-gray-300 space-y-4">
+                <!-- Guide content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let map;
+            let cityMarkers = [];
+            let currentMapLayer = null;
+            let currentLanguage = 'en';
+            const defaultApiKey = 'AIzaSyDCEGX3-vgvEteg7jx_eiKv0-a09dindZk';
+
+            // Auto-save the default API key on first visit
+            if (!localStorage.getItem('geminiApiKey')) {
+                localStorage.setItem('geminiApiKey', defaultApiKey);
+            }
+
+            const translations = {
+                en: {
+                    guide: "Guide",
+                    guideTitle: "TerraVitalis Guide",
+                    guideContent: `
+                        <h3 class="text-lg font-semibold text-indigo-400">Introduction: The Mission</h3>
+                        <p>Welcome to TerraVitalis, a dynamic decision-support interface designed for the Nasa Space Apps Challenge. Our mission is to transform complex NASA Earth observation data into clear, intuitive, and actionable insights. We empower city planners, environmental agencies, and community leaders to strategically implement urban greening projects that enhance food security and build climate resilience.</p>
+                        <p>The tool operates on two interconnected scales: the <strong>City Readiness View</strong> for macro-level strategic planning, and the <strong>Neighborhood Priority View</strong> for targeted, micro-level interventions.</p>
+
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">How It Works: A Two-Scale Approach</h3>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">1. City Readiness View (The Macro Perspective)</h4>
+                        <p>This is the strategic overview. It helps policymakers decide which cities are most prepared for and would benefit most from large-scale urban greening projects.</p>
+                        <ul class="list-disc list-inside space-y-2 pl-4 text-sm">
+                            <li><strong>The Interface:</strong> The initial view is a map of Europe. Each city in our dataset is marked with a circle. The size of the circle corresponds to the total area of existing green space, while its color indicates its readiness score.</li>
+                            <li><strong>The Core Metric: CECR Score:</strong> The "City Edible Conversion Readiness" (CECR) score is the engine of this view. It’s a weighted index calculated from four key components, primarily derived from NASA data:
+                                <ul class="list-disc list-inside space-y-1 pl-6 mt-2">
+                                    <li><strong>Poverty Need (PN):</strong> Uses data from NASA's Socioeconomic Data and Applications Center (SEDAC) to identify areas with higher social need for access to fresh food.</li>
+                                    <li><strong>Accessibility Bonus (AB):</strong> Analyzes the proximity of existing green spaces to vulnerable populations, ensuring new projects serve those who need them most.</li>
+                                    <li><strong>Heat/Health Priority (HP):</strong> Uses thermal data from NASA's ECOSTRESS instrument to pinpoint urban heat islands where greening would provide a critical cooling effect.</li>
+                                    <li><strong>Green Base (GB):</strong> Measures the current amount of vegetation using NASA's MODIS satellite data to assess a city's existing green infrastructure.</li>
+                                </ul>
+                            </li>
+                            <li><strong>Interactive Analysis:</strong> On the left, a ranked list of cities allows for quick comparison. Clicking on any city (either on the map or the list) opens a detailed information panel. This panel includes a Radar Chart and Projected Impact estimates.</li>
+                            <li><strong>AI-Powered Insights (Gemini):</strong> Users can get AI-generated explanations of data (Data Interpretation) and analysis of green spaces with crop recommendations.</li>
+                        </ul>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">2. Neighborhood Priority View (The Micro Perspective)</h4>
+                        <p>Once a city is selected, users can "Drill Down" to identify which specific neighborhoods are the highest priority for micro-interventions like community orchards or gardens.</p>
+                        <ul class="list-disc list-inside space-y-2 pl-4 text-sm">
+                            <li><strong>The Interface:</strong> The map view transitions into an abstract hexagonal grid laid over the selected city. Each hexagon represents a neighborhood of approximately 1km².</li>
+                            <li><strong>The Core Metric: NSI Score:</strong> The "NutriShade Index" (NSI) is designed to find areas of critical need. A high NSI score indicates a "green desert". It is calculated from Green Access Deficit (GAD), Heat Burden (HB), and Density Boost (DB).</li>
+                            <li><strong>Data Layer Toggling:</strong> Users can toggle different data overlays on the hex grid to visualize the individual components of the NSI score.</li>
+                            <li><strong>AI-Powered Action Plans (Gemini):</strong> Clicking a specific hexagon allows users to interpret data and analyze potential for micro-orchards, including projected impact on cooling and food production.</li>
+                        </ul>
+                    `,
+                    cityReadiness: "City Readiness (CECR)",
+                    cityReadinessShort: "City",
+                    neighborhoodPriority: "Neighborhood Priority (NSI)",
+                    neighborhoodPriorityShort: "Neighborhood",
+                    cityRankingsTitle: "European City Rankings",
+                    cityRankingsSubtitle: "Higher CECR scores indicate greater readiness for edible park conversion projects.",
+                    neighborhoodAnalysisTitle: "Neighborhood Analysis",
+                    neighborhoodAnalysisSubtitle: "Toggle data overlays to understand the NutriShade Index (NSI) composition.",
+                    nsiHeatmap: "NSI Priority Heatmap",
+                    heatBurden: "Heat Burden (LST)",
+                    greenAccessDeficit: "Green Access Deficit",
+                    populationDensity: "Population Density",
+                    cecrFormulaTitle: "CECR (City Edible Conversion Readiness) Formula",
+                    cecrCalcTitle: "CECR Calculation",
+                    povertyNeed: "PN (Poverty Need)",
+                    accessibilityBonus: "AB (Accessibility Bonus)",
+                    heatHealthPriority: "HP (Heat/Health Priority)",
+                    greenBase: "GB (Green Base)",
+                    projectedImpact: "Projected Impact",
+                    estFoodProduction: "Est. Food Production",
+                    foodRations: "Equivalent Food Rations",
+                    portionsYear: "portions/year",
+                    basedOnPortion: "(Based on 0.5 kg per portion)",
+                    tonnesYear: "tonnes/year",
+                    analyzeGreenSpaces: "🌳 Analyze Major Green Spaces",
+                    dataInterpretation: "✨ Data Interpretation",
+                    drillDown: "🔬 Drill Down to Neighborhoods",
+                    nsiFormulaTitle: "NSI (NutriShade Index) Formula",
+                    nsiCalcTitle: "NSI Calculation Details",
+                    gad: "GAD% (Green Access Deficit)",
+                    hb: "HB (Heat Burden)",
+                    db: "DB (Density Boost)",
+                    groundTruth: "Ground-Truth Data",
+                    analyzePotential: "✨ Analyze Potential",
+                    enableAIFeatures: "Enable AI Features",
+                    enterApiKey: "To unlock the AI-powered analysis, please enter your Google Gemini API key below.",
+                    save: "Save",
+                    apiKeySaved: "API Key saved successfully!",
+                    lowReadiness: "Low Readiness",
+                    highReadiness: "High Readiness",
+                    cecrScore: "CECR Score",
+                    lowPriority: "Low Priority",
+                    highPriority: "High Priority",
+                    nsiScore: "NSI Score",
+                    nasaDataSourceTitleCECR: "NASA Data Sources (CECR)",
+                    nasaDataSourceContentCECR: `<p><strong>GPWv4:</strong> Population density data.</p><p><strong>SEDAC Poverty Datasets:</strong> Global deprivation and poverty maps to inform the Poverty Need (PN) score.</p><p><strong>ECOSTRESS LST:</strong> High-resolution (70m) thermal data to identify urban heat islands and calculate the Heat Priority (HP) score.</p><p><strong>MODIS Vegetation Indices:</strong> Measures current greenness to identify parks suitable for conversion.</p><p><strong>Partner Data (e.g., OSM):</strong> Provides park boundaries and community facility locations to calculate the Accessibility Bonus (AB).</p>`,
+                    nasaDataSourceTitleNSI: "NASA Data Sources (NSI)",
+                    nasaDataSourceContentNSI: `<p><strong>MODIS Vegetation Indices (NDVI/EVI):</strong> Maps vegetation scarcity and density at a local level.</p><p><strong>ECOSTRESS LST:</strong> Pinpoints neighborhood-level heat hotspots with high-resolution (70m) temperature data.</p><p><strong>GPWv4 Population Grid:</strong> Provides population counts (~1km) to weight the NSI and prioritize densely populated areas.</p><p><strong>GRDIv1 & Poverty Maps:</strong> Optional layers to further prioritize interventions in socially and economically deprived areas.</p>`,
+                    toolScopeCECRTitle: "Tool Scope (CECR)",
+                    toolScopeCECRContent: `<p>This view helps identify and rank cities based on their readiness for large-scale urban greening projects. The <strong>CECR score</strong> synthesizes social need (poverty), climate vulnerability (heat), and logistical potential (green space availability and accessibility) to guide strategic investment decisions.</p>`,
+                    toolScopeNSITitle: "Tool Scope (NSI)",
+                    toolScopeNSIContent: `<p>This view drills down into a selected city to identify high-priority neighborhoods for micro-interventions. The <strong>NSI score</strong> pinpoints specific areas (approx. 1km²) that suffer from a combination of high urban heat, poor access to existing parks, and high population density, making them ideal candidates for new micro-orchards.</p>`,
+                },
+                it: {
+                    guide: "Guida",
+                    guideTitle: "Guida di TerraVitalis",
+                    guideContent: `
+                        <h3 class="text-lg font-semibold text-indigo-400">Introduzione: La Missione</h3>
+                        <p>Benvenuti in TerraVitalis, un'interfaccia dinamica di supporto decisionale progettata per la Nasa Space Apps Challenge. La nostra missione è trasformare i complessi dati di osservazione della Terra della NASA in intuizioni chiare, intuitive e attuabili. Diamo potere a pianificatori urbani, agenzie ambientali e leader di comunità per implementare strategicamente progetti di inverdimento urbano che migliorano la sicurezza alimentare e costruiscono la resilienza climatica.</p>
+                        <p>Lo strumento opera su due scale interconnesse: la <strong>Vista Prontezza Città</strong> per la pianificazione strategica a livello macro e la <strong>Vista Priorità di Quartiere</strong> per interventi mirati a livello micro.</p>
+
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Come Funziona: Un Approccio su Due Scale</h3>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">1. Vista Prontezza Città (La Prospettiva Macro)</h4>
+                        <p>Questa è la panoramica strategica. Aiuta i decisori politici a stabilire quali città sono più preparate e trarrebbero maggior beneficio da progetti di inverdimento urbano su larga scala.</p>
+                        <ul class="list-disc list-inside space-y-2 pl-4 text-sm">
+                            <li><strong>L'Interfaccia:</strong> La vista iniziale è una mappa dell'Europa. Ogni città nel nostro set di dati è contrassegnata da un cerchio. La dimensione del cerchio corrisponde all'area totale dello spazio verde esistente, mentre il suo colore indica il punteggio di prontezza.</li>
+                            <li><strong>La Metrica Principale: Punteggio CECR:</strong> Il punteggio "City Edible Conversion Readiness" (CECR) è il motore di questa vista. È un indice ponderato calcolato da quattro componenti chiave, derivati principalmente da dati NASA:
+                                <ul class="list-disc list-inside space-y-1 pl-6 mt-2">
+                                    <li><strong>Necessità Legata alla Povertà (PN):</strong> Utilizza i dati del Socioeconomic Data and Applications Center (SEDAC) della NASA per identificare le aree con maggiore necessità sociale di accesso a cibo fresco.</li>
+                                    <li><strong>Bonus Accessibilità (AB):</strong> Analizza la vicinanza degli spazi verdi esistenti alle popolazioni vulnerabili, garantendo che i nuovi progetti servano coloro che ne hanno più bisogno.</li>
+                                    <li><strong>Priorità Calore/Salute (HP):</strong> Utilizza i dati termici dello strumento ECOSTRESS della NASA per individuare le isole di calore urbane dove l'inverdimento fornirebbe un effetto di raffreddamento critico.</li>
+                                    <li><strong>Base Verde (GB):</strong> Misura la quantità attuale di vegetazione utilizzando i dati satellitari MODIS della NASA per valutare l'infrastruttura verde esistente di una città.</li>
+                                </ul>
+                            </li>
+                            <li><strong>Analisi Interattiva:</strong> Sulla sinistra, un elenco classificato di città consente un rapido confronto. Cliccando su qualsiasi città si apre un pannello informativo dettagliato che include un Grafico Radar e stime di Impatto Proiettato.</li>
+                            <li><strong>Approfondimenti basati su IA (Gemini):</strong> Gli utenti possono ottenere spiegazioni dei dati generate dall'IA (Interpretazione dei Dati) e analisi degli spazi verdi con raccomandazioni sulle colture.</li>
+                        </ul>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">2. Vista Priorità di Quartiere (La Prospettiva Micro)</h4>
+                        <p>Una volta selezionata una città, gli utenti possono "Approfondire" per identificare quali quartieri specifici hanno la massima priorità per micro-interventi come frutteti comunitari o giardini.</p>
+                        <ul class="list-disc list-inside space-y-2 pl-4 text-sm">
+                            <li><strong>L'Interfaccia:</strong> La vista della mappa si trasforma in una griglia esagonale astratta. Ogni esagono rappresenta un quartiere di circa 1km².</li>
+                            <li><strong>La Metrica Principale: Punteggio NSI:</strong> L'indice "NutriShade Index" (NSI) è progettato per trovare aree di necessità critica. Un punteggio NSI elevato indica un "deserto verde". È calcolato dal Deficit di Accesso al Verde (GAD), dal Carico di Calore (HB) e dall'Aumento per Densità (DB).</li>
+                            <li><strong>Attivazione Livelli Dati:</strong> Gli utenti possono attivare diversi livelli di dati sulla griglia esagonale per visualizzare i singoli componenti del punteggio NSI.</li>
+                            <li><strong>Piani d'Azione basati su IA (Gemini):</strong> Cliccando su un esagono specifico, gli utenti possono interpretare i dati e analizzare il potenziale per micro-frutteti, compreso l'impatto previsto sul raffreddamento e sulla produzione alimentare.</li>
+                        </ul>
+                    `,
+                    cityReadiness: "Prontezza Città (CECR)",
+                    cityReadinessShort: "Città",
+                    neighborhoodPriority: "Priorità Quartiere (NSI)",
+                    neighborhoodPriorityShort: "Quartiere",
+                    cityRankingsTitle: "Classifica delle Città Europee",
+                    cityRankingsSubtitle: "Punteggi CECR più alti indicano una maggiore prontezza per progetti di conversione di parchi edibili.",
+                    neighborhoodAnalysisTitle: "Analisi del Quartiere",
+                    neighborhoodAnalysisSubtitle: "Attiva/disattiva i layer di dati per comprendere la composizione dell'Indice NutriShade (NSI).",
+                    nsiHeatmap: "Mappa di Priorità NSI",
+                    heatBurden: "Carico di Calore (LST)",
+                    greenAccessDeficit: "Deficit di Accesso al Verde",
+                    populationDensity: "Densità di Popolazione",
+                    cecrFormulaTitle: "Formula CECR (Prontezza alla Conversione Edibile delle Città)",
+                    cecrCalcTitle: "Calcolo CECR",
+                    povertyNeed: "PN (Necessità di Povertà)",
+                    accessibilityBonus: "AB (Bonus Accessibilità)",
+                    heatHealthPriority: "HP (Priorità Calore/Salute)",
+                    greenBase: "GB (Base Verde)",
+                    projectedImpact: "Impatto Proiettato",
+                    estFoodProduction: "Produzione Alimentare Stimata",
+                    foodRations: "Razioni Alimentari Equivalenti",
+                    portionsYear: "porzioni/anno",
+                    basedOnPortion: "(Basato su 0.5 kg per porzione)",
+                    tonnesYear: "tonnellate/anno",
+                    analyzeGreenSpaces: "🌳 Analizza Aree Verdi Principali",
+                    dataInterpretation: "✨ Interpretazione Dati",
+                    drillDown: "🔬 Analisi di Quartiere",
+                    nsiFormulaTitle: "Formula NSI (Indice NutriShade)",
+                    nsiCalcTitle: "Dettagli Calcolo NSI",
+                    gad: "GAD% (Deficit Accesso Verde)",
+                    hb: "HB (Carico di Calore)",
+                    db: "DB (Incremento Densità)",
+                    groundTruth: "Dati sul Campo",
+                    analyzePotential: "✨ Analizza Potenziale",
+                    enableAIFeatures: "Abilita Funzionalità IA",
+                    enterApiKey: "Per sbloccare l'analisi basata su IA, inserisci la tua chiave API di Google Gemini qui sotto.",
+                    save: "Salva",
+                    apiKeySaved: "Chiave API salvata con successo!",
+                    lowReadiness: "Bassa Prontezza",
+                    highReadiness: "Alta Prontezza",
+                    cecrScore: "Punteggio CECR",
+                    lowPriority: "Bassa Priorità",
+                    highPriority: "Alta Priorità",
+                    nsiScore: "Punteggio NSI",
+                    nasaDataSourceTitleCECR: "Fonti Dati NASA (CECR)",
+                    nasaDataSourceContentCECR: `<p><strong>GPWv4:</strong> Dati sulla densità di popolazione.</p><p><strong>SEDAC Poverty Datasets:</strong> Mappe globali di deprivazione e povertà per informare il punteggio di Necessità di Povertà (PN).</p><p><strong>ECOSTRESS LST:</strong> Dati termici ad alta risoluzione (70m) per identificare le isole di calore urbane e calcolare il punteggio di Priorità Calore (HP).</p><p><strong>MODIS Vegetation Indices:</strong> Misura il livello di vegetazione attuale per identificare parchi adatti alla conversione.</p><p><strong>Dati Partner (es. OSM):</strong> Fornisce confini dei parchi e posizioni di strutture comunitarie per calcolare il Bonus Accessibilità (AB).</p>`,
+                    nasaDataSourceTitleNSI: "Fonti Dati NASA (NSI)",
+                    nasaDataSourceContentNSI: `<p><strong>MODIS Vegetation Indices (NDVI/EVI):</strong> Mappa la scarsità e la densità della vegetazione a livello locale.</p><p><strong>ECOSTRESS LST:</strong> Individua punti caldi a livello di quartiere con dati di temperatura ad alta risoluzione (70m).</p><p><strong>GPWv4 Population Grid:</strong> Fornisce conteggi della popolazione (~1km) per pesare l'NSI e dare priorità alle aree densamente popolate.</p><p><strong>GRDIv1 & Mappe di Povertà:</strong> Layer opzionali per dare ulteriore priorità a interventi in aree socialmente ed economicamente svantaggiate.</p>`,
+                    toolScopeCECRTitle: "Scopo dello Strumento (CECR)",
+                    toolScopeCECRContent: `<p>Questa vista aiuta a identificare e classificare le città in base alla loro prontezza per progetti di inverdimento urbano su larga scala. Il <strong>punteggio CECR</strong> sintetizza il bisogno sociale (povertà), la vulnerabilità climatica (calore) e il potenziale logistico (disponibilità e accessibilità degli spazi verdi) per guidare le decisioni di investimento strategico.</p>`,
+                    toolScopeNSITitle: "Scopo dello Strumento (NSI)",
+                    toolScopeNSIContent: `<p>Questa vista analizza in dettaglio una città selezionata per identificare i quartieri ad alta priorità per micro-interventi. Il <strong>punteggio NSI</strong> individua aree specifiche (circa 1km²) che soffrono di una combinazione di elevato calore urbano, scarso accesso ai parchi esistenti e alta densità di popolazione, rendendole candidate ideali per nuovi micro-frutteti.</p>`,
+                }
+            };
+            
+            const mapLayers = {
+                dark: { name: 'Dark Matter', name_it: 'Materia Oscura', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', options: { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' } },
+                satellite: { name: 'Satellite', name_it: 'Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', options: { attribution: 'Tiles &copy; Esri' } },
+                streets: { name: 'Streets', name_it: 'Strade', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options: { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } }
+            };
+            
+            const rawCityData = [
+                // Existing Cities
+                { id: 'london', name: 'London', name_it: 'Londra', pn_z: 0.3, ab_z: 0.4, hp_z: 0.6, gb_z: 0.7, green_ha: 3500, lat: 51.5072, lng: -0.1276 },
+                { id: 'paris', name: 'Paris', name_it: 'Parigi', pn_z: 0.4, ab_z: 0.2, hp_z: 0.9, gb_z: -1.0, green_ha: 2200, lat: 48.8566, lng: 2.3522 },
+                { id: 'berlin', name: 'Berlin', name_it: 'Berlino', pn_z: 0.5, ab_z: 0.7, hp_z: 0.5, gb_z: 1.2, green_ha: 3000, lat: 52.5200, lng: 13.4050 },
+                { id: 'amsterdam', name: 'Amsterdam', name_it: 'Amsterdam', pn_z: -0.2, ab_z: 1.2, hp_z: 0.2, gb_z: 0.6, green_ha: 1500, lat: 52.3676, lng: 4.9041 },
+                { id: 'brussels', name: 'Brussels', name_it: 'Bruxelles', pn_z: 0.1, ab_z: 0.5, hp_z: 0.3, gb_z: 0.2, green_ha: 1300, lat: 50.8503, lng: 4.3517 },
+                { id: 'zurich', name: 'Zurich', name_it: 'Zurigo', pn_z: -1.5, ab_z: 0.8, hp_z: 0.1, gb_z: 0.9, green_ha: 1000, lat: 47.3769, lng: 8.5417 },
+                { id: 'madrid', name: 'Madrid', name_it: 'Madrid', pn_z: 0.9, ab_z: 0.1, hp_z: 1.5, gb_z: 0.3, green_ha: 2000, lat: 40.4168, lng: -3.7038 },
+                { id: 'rome', name: 'Rome', name_it: 'Roma', pn_z: 1.0, ab_z: -0.2, hp_z: 1.4, gb_z: 0.5, green_ha: 1800, lat: 41.9028, lng: 12.4964 },
+                { id: 'lisbon', name: 'Lisbon', name_it: 'Lisbona', pn_z: 1.2, ab_z: 0.3, hp_z: 1.3, gb_z: -0.3, green_ha: 1400, lat: 38.7223, lng: -9.1393 },
+                { id: 'athens', name: 'Athens', name_it: 'Atene', pn_z: 1.4, ab_z: -0.5, hp_z: 1.6, gb_z: -1.2, green_ha: 900, lat: 37.9838, lng: 23.7275 },
+                { id: 'copenhagen', name: 'Copenhagen', name_it: 'Copenaghen', pn_z: -0.8, ab_z: 1.1, hp_z: -0.5, gb_z: 0.8, green_ha: 1600, lat: 55.6761, lng: 12.5683 },
+                { id: 'stockholm', name: 'Stockholm', name_it: 'Stoccolma', pn_z: -0.7, ab_z: 0.9, hp_z: -0.8, gb_z: 1.5, green_ha: 2700, lat: 59.3293, lng: 18.0686 },
+                { id: 'oslo', name: 'Oslo', name_it: 'Oslo', pn_z: -0.9, ab_z: 0.7, hp_z: -1.0, gb_z: 1.8, green_ha: 2900, lat: 59.9139, lng: 10.7522 },
+                { id: 'warsaw', name: 'Warsaw', name_it: 'Varsavia', pn_z: 0.7, ab_z: 0.0, hp_z: 0.4, gb_z: 0.4, green_ha: 2100, lat: 52.2297, lng: 21.0122 },
+                { id: 'prague', name: 'Prague', name_it: 'Praga', pn_z: 0.2, ab_z: 0.6, hp_z: 0.3, gb_z: 0.7, green_ha: 1700, lat: 50.0755, lng: 14.4378 },
+                { id: 'vienna', name: 'Vienna', name_it: 'Vienna', pn_z: -0.1, ab_z: 0.9, hp_z: 0.4, gb_z: 1.1, green_ha: 2300, lat: 48.2082, lng: 16.3738 },
+                { id: 'istanbul', name: 'Istanbul', name_it: 'Istanbul', pn_z: 1.3, ab_z: -0.4, hp_z: 1.2, gb_z: -0.8, green_ha: 1900, lat: 41.0082, lng: 28.9784 },
+                { id: 'moscow', name: 'Moscow', name_it: 'Mosca', pn_z: 0.6, ab_z: -0.1, hp_z: -0.2, gb_z: 1.3, green_ha: 4500, lat: 55.7558, lng: 37.6173 },
+                { id: 'barcelona', name: 'Barcelona', name_it: 'Barcellona', pn_z: 1.1, ab_z: 0.1, hp_z: 1.7, gb_z: -0.5, green_ha: 1100, lat: 41.3851, lng: 2.1734 },
+                { id: 'milan', name: 'Milan', name_it: 'Milano', pn_z: 0.8, ab_z: -0.1, hp_z: 1.3, gb_z: -0.2, green_ha: 1500, lat: 45.4642, lng: 9.1900 },
+                { id: 'bucharest', name: 'Bucharest', name_it: 'Bucarest', pn_z: 1.5, ab_z: -0.3, hp_z: 1.1, gb_z: 0.1, green_ha: 1200, lat: 44.4268, lng: 26.1025 },
+                { id: 'budapest', name: 'Budapest', name_it: 'Budapest', pn_z: 0.9, ab_z: 0.2, hp_z: 0.8, gb_z: 0.6, green_ha: 1600, lat: 47.4979, lng: 19.0402 },
+                { id: 'hamburg', name: 'Hamburg', name_it: 'Amburgo', pn_z: 0.0, ab_z: 0.6, hp_z: 0.1, gb_z: 1.4, green_ha: 2500, lat: 53.5511, lng: 9.9937 },
+                { id: 'napoli', name: 'Naples', name_it: 'Napoli', pn_z: 1.6, ab_z: -0.4, hp_z: 1.8, gb_z: -1.5, green_ha: 800, lat: 40.8518, lng: 14.2681 },
+            ];
+
+            const cityData = rawCityData.map(city => ({ ...city, cecr: (0.4 * city.pn_z) + (0.3 * city.ab_z) + (0.2 * city.hp_z) + (0.1 * city.gb_z) }));
+            const neighborhoodData = Object.fromEntries(cityData.map(city => {
+                const cells = Array.from({ length: 80 }, (_, i) => { const gad_z = Math.random() * 2.5 - 0.5; const hb_z = Math.random() * 2.5 - 0.5; const db_z = Math.random() * 2 - 1; return { id: `${city.id}-cell-${i}`, nsi: (0.5 * gad_z) + (0.3 * hb_z) + (0.2 * db_z), gad_z: gad_z, hb_z: hb_z, db_z: db_z, gad_p: Math.floor(Math.random() * 100), hb_p: Math.floor(Math.random() * 100) }; });
+                return [city.id, cells];
+            }));
+
+            const cityViewBtn = document.getElementById('city-view-btn'), neighborhoodViewBtn = document.getElementById('neighborhood-view-btn'), cityControls = document.getElementById('city-controls'), neighborhoodControls = document.getElementById('neighborhood-controls'), neighborhoodMapView = document.getElementById('neighborhood-map-view'), cityInfoPanel = document.getElementById('city-info-panel'), neighborhoodInfoPanel = document.getElementById('neighborhood-info-panel'), cityRankingList = document.getElementById('city-ranking-list'), hexGrid = neighborhoodMapView.querySelector('.hex-grid'), layerToggles = document.querySelectorAll('.layer-toggle'), dataLegend = document.getElementById('data-legend'), hexTooltip = document.getElementById('hex-tooltip'), langSwitcher = document.getElementById('lang-switcher');
+            let currentView = 'city', selectedCity = null;
+
+            function setLanguage(lang) {
+                currentLanguage = lang;
+                const t = translations[lang];
+                const isMobile = window.innerWidth < 640;
+                
+                document.getElementById('guide-text').textContent = isMobile ? '' : t.guide;
+                document.getElementById('guide-title').textContent = t.guideTitle;
+                cityViewBtn.textContent = isMobile ? t.cityReadinessShort : t.cityReadiness;
+                neighborhoodViewBtn.textContent = isMobile ? t.neighborhoodPriorityShort : t.neighborhoodPriority;
+                document.getElementById('city-rankings-title').textContent = t.cityRankingsTitle;
+                document.getElementById('city-rankings-subtitle').textContent = t.cityRankingsSubtitle;
+                document.getElementById('neighborhood-analysis-title').textContent = t.neighborhoodAnalysisTitle;
+                document.getElementById('neighborhood-analysis-subtitle').textContent = t.neighborhoodAnalysisSubtitle;
+                document.getElementById('layer-nsi').textContent = t.nsiHeatmap;
+                document.getElementById('layer-heat').textContent = t.heatBurden;
+                document.getElementById('layer-access').textContent = t.greenAccessDeficit;
+                document.getElementById('layer-density').textContent = t.populationDensity;
+                document.getElementById('nasa-data-source-title-cecr').textContent = t.nasaDataSourceTitleCECR;
+                document.getElementById('city-data-source-content').innerHTML = t.nasaDataSourceContentCECR;
+                document.getElementById('nasa-data-source-title-nsi').textContent = t.nasaDataSourceTitleNSI;
+                document.getElementById('neighborhood-data-source-content').innerHTML = t.nasaDataSourceContentNSI;
+                document.getElementById('cecr-scope-title').textContent = t.toolScopeCECRTitle;
+                document.getElementById('cecr-scope-content').innerHTML = t.toolScopeCECRContent;
+                document.getElementById('nsi-scope-title').textContent = t.toolScopeNSITitle;
+                document.getElementById('nsi-scope-content').innerHTML = t.toolScopeNSIContent;
+
+                // Translate API Key Section
+                document.querySelector('#api-key-section h3').textContent = t.enableAIFeatures;
+                document.querySelector('#api-key-section p').textContent = t.enterApiKey;
+                document.getElementById('save-api-key-btn').textContent = t.save;
+                document.getElementById('api-key-status').textContent = t.apiKeySaved;
+
+
+                document.getElementById('lang-flag').src = lang === 'en' ? 'https://flagcdn.com/w20/gb.png' : 'https://flagcdn.com/w20/it.png';
+                document.getElementById('lang-text').textContent = lang.toUpperCase();
+
+                const guideModalContent = document.querySelector('#guide-modal .overflow-y-auto');
+                guideModalContent.innerHTML = t.guideContent;
+
+                renderCities();
+                updateLegend(currentView);
+                if (cityInfoPanel.dataset.cityId) { renderCityInfo(cityData.find(c => c.id === cityInfoPanel.dataset.cityId)); }
+                if (neighborhoodInfoPanel.dataset.cellId) { renderNeighborhoodInfo(neighborhoodData[selectedCity.id].find(c => c.id === neighborhoodInfoPanel.dataset.cellId)); }
+                
+                 document.querySelectorAll('#map-layer-switcher button').forEach(btn => {
+                    const key = btn.dataset.layerKey;
+                    if(key && mapLayers[key]) {
+                        btn.textContent = mapLayers[key]['name_' + lang] || mapLayers[key].name;
+                    }
+                 });
+            }
+
+            langSwitcher.addEventListener('click', () => setLanguage(currentLanguage === 'en' ? 'it' : 'en'));
+            document.getElementById('city-data-source-btn').addEventListener('click', (e) => {
+                document.getElementById('city-data-source-content').classList.toggle('hidden');
+                e.currentTarget.querySelector('svg').classList.toggle('rotate-180');
+            });
+             document.getElementById('neighborhood-data-source-btn').addEventListener('click', (e) => {
+                document.getElementById('neighborhood-data-source-content').classList.toggle('hidden');
+                e.currentTarget.querySelector('svg').classList.toggle('rotate-180');
+            });
+            document.getElementById('cecr-scope-btn').addEventListener('click', (e) => {
+                document.getElementById('cecr-scope-content').classList.toggle('hidden');
+                e.currentTarget.querySelector('svg').classList.toggle('rotate-180');
+            });
+            document.getElementById('nsi-scope-btn').addEventListener('click', (e) => {
+                document.getElementById('nsi-scope-content').classList.toggle('hidden');
+                e.currentTarget.querySelector('svg').classList.toggle('rotate-180');
+            });
+
+            function switchMapLayer(layerKey) {
+                if (currentMapLayer) { map.removeLayer(currentMapLayer); }
+                const layer = mapLayers[layerKey];
+                currentMapLayer = L.tileLayer(layer.url, layer.options).addTo(map);
+                
+                document.querySelectorAll('#map-layer-switcher button').forEach(btn => {
+                    if (btn.dataset.layerKey) {
+                        btn.classList.toggle('active-toggle', btn.dataset.layerKey === layerKey);
+                        btn.classList.toggle('inactive-toggle', btn.dataset.layerKey !== layerKey);
+                    }
+                });
+            }
+
+            function initMap() {
+                map = L.map('map-container', { zoomControl: false, attributionControl: true }).setView([50, 15], 4.5);
+                switchMapLayer('dark');
+                L.control.zoom({ position: 'topright' }).addTo(map);
+
+                const layerSwitcherContainer = document.getElementById('map-layer-switcher');
+                Object.keys(mapLayers).forEach(key => {
+                    const layer = mapLayers[key];
+                    const button = document.createElement('button');
+                    button.className = 'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors duration-300 glass-panel';
+                    button.textContent = layer.name;
+                    button.dataset.layerKey = key;
+                    button.addEventListener('click', () => switchMapLayer(key));
+                    layerSwitcherContainer.appendChild(button);
+                });
+
+                const placeholderLayers = { Temperature: 'Real-time temperature layer requires an API key from a weather service.', Vegetation: 'Real-time vegetation layer requires an API key from a data provider.' };
+                Object.keys(placeholderLayers).forEach(name => {
+                    const button = document.createElement('button');
+                    button.className = 'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors duration-300 glass-panel inactive-toggle opacity-50 cursor-not-allowed';
+                    button.textContent = name;
+                    button.title = placeholderLayers[name];
+                    button.disabled = true;
+                    layerSwitcherContainer.appendChild(button);
+                });
+                
+                document.querySelector('#map-layer-switcher button[data-layer-key="dark"]').classList.add('active-toggle');
+            }
+
+            const createRadarChart = (city) => {
+                const zScores = [city.pn_z, city.ab_z, city.hp_z, city.gb_z]; const size = 120; const center = size / 2; let points = '';
+                zScores.forEach((score, i) => {
+                    const value = Math.max(0, (score + 1.5) / 3); const angle = (Math.PI / 2) - (i * Math.PI / 2); const x = center + center * value * 0.8 * Math.cos(angle); const y = center - center * value * 0.8 * Math.sin(angle); points += `${x},${y} `;
+                });
+                return `<svg viewBox="0 0 ${size} ${size}" class="w-full h-auto">
+                    <circle cx="${center}" cy="${center}" r="${center * 0.8}" fill="none" stroke="#4a5568" stroke-width="0.5"/><circle cx="${center}" cy="${center}" r="${center * 0.5}" fill="none" stroke="#4a5568" stroke-width="0.5"/><line x1="${center}" y1="${center*0.2}" x2="${center}" y2="${center*1.8}" stroke="#4a5568" stroke-width="0.5"/><line x1="${center*0.2}" y1="${center}" x2="${center*1.8}" y2="${center}" stroke="#4a5568" stroke-width="0.5"/><polygon points="${points}" fill="rgba(129, 140, 248, 0.4)" stroke="#818cf8" stroke-width="1.5"/>
+                </svg>`;
+            };
+
+            const renderCities = () => {
+                const t = translations[currentLanguage];
+                cityRankingList.innerHTML = '';
+                cityMarkers.forEach(marker => map.removeLayer(marker));
+                cityMarkers = [];
+                const sortedCities = [...cityData].sort((a, b) => b.cecr - a.cecr);
+                
+                sortedCities.forEach(city => {
+                    const colorIntensity = Math.min(1, Math.max(0, (city.cecr - (-0.5)) / 1.8));
+                    const color = `rgb(255, ${Math.floor(200 * (1 - colorIntensity))}, ${Math.floor(100 * (1 - colorIntensity))})`;
+                    
+                    const marker = L.circleMarker([city.lat, city.lng], { radius: 5 + (city.green_ha / 1000), fillColor: color, color: "#fff", weight: 1.5, opacity: 1, fillOpacity: 0.8 }).addTo(map);
+                    marker.on('click', () => renderCityInfo(city));
+                    cityMarkers.push(marker);
+                    
+                    const cityName = city['name_' + currentLanguage] || city.name;
+                    const rankEl = document.createElement('div');
+                    rankEl.className = 'p-2 rounded-md hover:bg-gray-800 cursor-pointer transition-colors';
+                    rankEl.dataset.cityId = city.id;
+                    rankEl.innerHTML = `<div class="flex items-center"><span class="w-3 h-3 rounded-full mr-3" style="background-color: ${color};"></span><span class="font-semibold flex-grow">${cityName}</span><span class="text-sm font-bold ${city.cecr > 0.5 ? 'text-red-400' : 'text-yellow-400'}">${city.cecr.toFixed(2)}</span></div>`;
+                    cityRankingList.appendChild(rankEl);
+                });
+            };
+            
+            const renderCityInfo = (city) => {
+                const t = translations[currentLanguage];
+                cityInfoPanel.dataset.cityId = city.id;
+                document.querySelectorAll('#city-ranking-list > div').forEach(el => el.classList.toggle('active-rank-item', el.dataset.cityId === city.id));
+                const impactFood = (city.green_ha * 0.1 * 9.5);
+                
+                const calculationDetails = `<div class="space-y-2 text-xs">
+                                <div class="flex justify-between items-center"><span>${t.povertyNeed}</span><span class="font-mono">${city.pn_z.toFixed(2)} * 0.40 =</span><span class="font-bold w-12 text-right">${(city.pn_z * 0.4).toFixed(2)}</span></div>
+                                <div class="flex justify-between items-center"><span>${t.accessibilityBonus}</span><span class="font-mono">${city.ab_z.toFixed(2)} * 0.30 =</span><span class="font-bold w-12 text-right">${(city.ab_z * 0.3).toFixed(2)}</span></div>
+                                <div class="flex justify-between items-center"><span>${t.heatHealthPriority}</span><span class="font-mono">${city.hp_z.toFixed(2)} * 0.20 =</span><span class="font-bold w-12 text-right">${(city.hp_z * 0.2).toFixed(2)}</span></div>
+                                <div class="flex justify-between items-center"><span>${t.greenBase}</span><span class="font-mono">${city.gb_z.toFixed(2)} * 0.10 =</span><span class="font-bold w-12 text-right">${(city.gb_z * 0.1).toFixed(2)}</span></div></div>`;
+
+                const impactDetails = `<div class="bg-gray-900/50 p-3 rounded-lg space-y-3">
+                    <div>
+                        <p class="text-sm text-green-300">${t.estFoodProduction}</p>
+                        <p class="text-xl font-bold text-white">${impactFood.toFixed(0)} ${t.tonnesYear}</p>
+                        <p class="text-xs text-gray-400 font-mono mt-1">(${city.green_ha} ha * 10% * 9.5 t/ha/yr)</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-purple-300">${t.foodRations}</p>
+                        <p class="text-xl font-bold text-white">${(impactFood * 2000).toLocaleString()} ${t.portionsYear}</p>
+                        <p class="text-xs text-gray-400 font-mono mt-1">${t.basedOnPortion}</p>
+                    </div>
+                </div>`;
+                
+                const cityName = city['name_' + currentLanguage] || city.name;
+                cityInfoPanel.innerHTML = `
+                    <button id="close-city-panel" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button><h2 class="text-2xl font-bold">${cityName}</h2><p class="font-semibold text-lg ${city.cecr > 0.5 ? 'text-red-400' : 'text-yellow-400'}">${t.cecrScore}: ${city.cecr.toFixed(2)}</p>
+                    <div class="my-4"><h3 class="font-semibold mb-1 text-gray-300 text-sm">${t.cecrFormulaTitle}</h3><p class="text-xs text-gray-400 font-mono bg-gray-900/50 p-2 rounded">0.4*z(PN) + 0.3*z(AB) + 0.2*z(HP) + 0.1*z(GB)</p></div>
+                    <div class="my-4 grid grid-cols-2 gap-4 items-center"><div>${createRadarChart(city)}</div><div><h3 class="font-semibold mb-2 text-gray-300 text-sm">${t.cecrCalcTitle}</h3><div class="bg-gray-900/50 p-3 rounded-lg">${calculationDetails}</div></div></div>
+                    <div class="my-4"><h3 class="font-semibold mb-2 text-gray-300">${t.projectedImpact}</h3>${impactDetails}</div>
+                    <div id="gemini-city-output" class="my-6 hidden"></div>
+                    <button id="interpret-city-data-btn" data-city-id="${city.id}" class="w-full mb-2 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.dataInterpretation}</span></button>
+                    <button id="analyze-green-areas-btn" data-city-id="${city.id}" class="w-full mb-2 bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.analyzeGreenSpaces}</span></button>
+                    <button id="drill-down-btn" data-city-id="${city.id}" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-500 transition-colors">${t.drillDown}</button>`;
+                cityInfoPanel.classList.remove('translate-x-full');
+                document.getElementById('close-city-panel').addEventListener('click', () => cityInfoPanel.classList.add('translate-x-full'));
+                document.getElementById('drill-down-btn').addEventListener('click', (e) => switchView('neighborhood', cityData.find(c => c.id === e.currentTarget.dataset.cityId)));
+                document.getElementById('analyze-green-areas-btn').addEventListener('click', handleAnalyzeGreenSpaces);
+                document.getElementById('interpret-city-data-btn').addEventListener('click', handleInterpretCityData);
+            };
+
+            const renderNeighborhoods = (cityId, layer = 'nsi') => {
+                const data = neighborhoodData[cityId] || []; hexGrid.innerHTML = ''; if (data.length === 0) return;
+                data.forEach(cell => {
+                    let colorIntensity;
+                    switch(layer) { case 'heat': colorIntensity = cell.hb_p / 100; break; case 'access': colorIntensity = cell.gad_p / 100; break; case 'density': colorIntensity = (cell.db_z + 1.5) / 3; break; default: colorIntensity = Math.min(1, Math.max(0, (cell.nsi - (-0.5)) / 2.5)); }
+                    const color = `rgba(255, ${Math.floor(200 * (1 - colorIntensity))}, ${Math.floor(100 * (1 - colorIntensity))}, 0.8)`;
+                    const hexEl = document.createElement('div'); hexEl.className = 'hex'; hexEl.style.backgroundColor = color; hexEl.dataset.cellId = cell.id;
+                    hexEl.innerHTML = `<span class="hex-value">${cell.nsi.toFixed(2)}</span>`;
+                    
+                    hexEl.addEventListener('mouseenter', (e) => {
+                        const cellData = neighborhoodData[selectedCity.id].find(c => c.id === e.target.dataset.cellId);
+                        hexTooltip.style.display = 'block';
+                        hexTooltip.innerHTML = `<strong>NSI: ${cellData.nsi.toFixed(2)}</strong><br>Heat: ${cellData.hb_p}%<br>Access: ${cellData.gad_p}%<br>Density: ${cellData.db_z > 0 ? '+' : ''}${cellData.db_z.toFixed(2)}σ`;
+                    });
+                    hexEl.addEventListener('mouseleave', () => { hexTooltip.style.display = 'none'; });
+                    hexEl.addEventListener('mousemove', (e) => { hexTooltip.style.left = `${e.clientX + 15}px`; hexTooltip.style.top = `${e.clientY + 15}px`; });
+                    hexGrid.appendChild(hexEl);
+                });
+            };
+
+            const renderNeighborhoodInfo = (cell) => {
+                const t = translations[currentLanguage];
+                neighborhoodInfoPanel.dataset.cellId = cell.id;
+                document.querySelectorAll('.hex.selected').forEach(el => el.classList.remove('selected'));
+                const hexEl = document.querySelector(`.hex[data-cell-id="${cell.id}"]`);
+                if (hexEl) hexEl.classList.add('selected');
+
+                const nsiCalcDetails = `<div class="space-y-2 text-xs">
+                                <div class="flex justify-between items-center"><span>${t.gad}</span><span class="font-mono">${cell.gad_z.toFixed(2)} * 0.50 =</span><span class="font-bold w-12 text-right">${(cell.gad_z * 0.5).toFixed(2)}</span></div>
+                                <div class="flex justify-between items-center"><span>${t.hb}</span><span class="font-mono">${cell.hb_z.toFixed(2)} * 0.30 =</span><span class="font-bold w-12 text-right">${(cell.hb_z * 0.3).toFixed(2)}</span></div>
+                                <div class="flex justify-between items-center"><span>${t.db}</span><span class="font-mono">${cell.db_z.toFixed(2)} * 0.20 =</span><span class="font-bold w-12 text-right">${(cell.db_z * 0.2).toFixed(2)}</span></div>
+                            </div>`;
+
+                neighborhoodInfoPanel.innerHTML = `
+                    <button id="close-neighborhood-panel" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button><h2 class="text-2xl font-bold">Cell ID: ${cell.id.split('-').pop().toUpperCase()}</h2><p class="font-semibold text-lg ${cell.nsi > 0.5 ? 'text-red-400' : 'text-yellow-400'}">${t.nsiScore}: ${cell.nsi.toFixed(2)}</p>
+                    <div class="my-4"><h3 class="font-semibold mb-1 text-gray-300 text-sm">${t.nsiFormulaTitle}</h3><p class="text-xs text-gray-400 font-mono bg-gray-900/50 p-2 rounded">0.5*z(GAD%) + 0.3*z(HB) + 0.2*z(DB)</p></div>
+                    <div class="my-4"><h3 class="font-semibold mb-2 text-gray-300 text-sm">${t.nsiCalcTitle}</h3><div class="bg-gray-900/50 p-3 rounded-lg">${nsiCalcDetails}</div></div>
+                    <div class="my-4"><h3 class="font-semibold mb-2 text-gray-300 text-sm">${t.groundTruth}</h3><div class="space-y-1 text-xs"><p>${t.greenAccessDeficit}: <span class="font-bold float-right">${cell.gad_p}%</span></p><p>${t.heatBurden}: <span class="font-bold float-right">${cell.hb_p}th Percentile</span></p></div></div>
+                    <div id="gemini-neighborhood-output" class="my-6 hidden"></div>
+                    <button id="interpret-neighborhood-data-btn" data-cell-id="${cell.id}" class="w-full mb-2 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.dataInterpretation}</span></button>
+                    <button id="analyze-neighborhood-btn" data-cell-id="${cell.id}" class="w-full bg-teal-600 text-white font-bold py-3 rounded-lg hover:bg-teal-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.analyzePotential}</span></button>`;
+                neighborhoodInfoPanel.classList.remove('translate-x-full');
+                document.getElementById('close-neighborhood-panel').addEventListener('click', () => {
+                    neighborhoodInfoPanel.classList.add('translate-x-full');
+                    if(hexEl) hexEl.classList.remove('selected');
+                });
+                document.getElementById('analyze-neighborhood-btn').addEventListener('click', handleAnalyzeNeighborhood);
+                document.getElementById('interpret-neighborhood-data-btn').addEventListener('click', handleInterpretNeighborhoodData);
+            };
+            
+            const updateLegend = (view, layer = 'nsi') => {
+                const t = translations[currentLanguage];
+                let content = '';
+                if(view === 'city') { content = `<div class="flex justify-between items-center text-xs text-gray-300"><span>${t.lowReadiness}</span><div class="flex-grow h-2 rounded-full mx-2" style="background: linear-gradient(to right, rgb(255, 200, 100), rgb(255, 0, 0));"></div><span>${t.highReadiness}</span></div><p class="text-center text-xs text-gray-400 mt-1">${t.cecrScore}</p>`; } else { const titles = {nsi: t.nsiScore, heat: t.heatBurden, access: t.greenAccessDeficit, density: t.populationDensity}; content = `<div class="flex justify-between items-center text-xs text-gray-300"><span>${t.lowPriority}</span><div class="flex-grow h-2 rounded-full mx-2" style="background: linear-gradient(to right, rgb(255, 200, 100), rgb(255, 0, 0));"></div><span>${t.highPriority}</span></div><p class="text-center text-xs text-gray-400 mt-1">${titles[layer]}</p>`; }
+                dataLegend.innerHTML = content;
+            };
+
+            async function callGeminiAPI(systemPrompt, userQuery, button, outputDiv) {
+                if (currentLanguage === 'it') {
+                    systemPrompt += "\nIMPORTANT: Your entire response MUST be in Italian.";
+                }
+                const apiKey = localStorage.getItem('geminiApiKey');
+                if (!apiKey) {
+                    alert('Please enter your Gemini API key in the side menu to use this feature.');
+                    outputDiv.innerHTML = `<div class="bg-red-900/80 p-4 rounded-lg text-sm text-white">Error: Missing API Key.</div>`;
+                    return;
+                }
+
+                button.disabled = true; button.innerHTML = `<span class="loader"></span><span>Generating...</span>`; outputDiv.classList.remove('hidden'); outputDiv.innerHTML = `<div class="bg-gray-900/50 p-4 rounded-lg text-sm text-gray-300">Please wait while the AI analyzes the data...</div>`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents: [{ parts: [{ text: userQuery }] }], };
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+                    const result = await response.json(); const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) { 
+                        let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*/g, '•').replace(/\n/g, '<br>');
+                        outputDiv.innerHTML = `<div class="gemini-output bg-gray-900/50 p-4 rounded-lg text-sm">${formattedText}</div>`; 
+                    } else { throw new Error("No text found in API response."); }
+                } catch (error) { console.error("Gemini API call error:", error); outputDiv.innerHTML = `<div class="bg-red-900/80 p-4 rounded-lg text-sm text-white">Error: Could not generate analysis. Please try again.</div>`; } finally {
+                    button.disabled = false;
+                    const originalTexts = { 'analyze-green-areas-btn': translations[currentLanguage].analyzeGreenSpaces, 'analyze-neighborhood-btn': translations[currentLanguage].analyzePotential, 'interpret-city-data-btn': translations[currentLanguage].dataInterpretation, 'interpret-neighborhood-data-btn': translations[currentLanguage].dataInterpretation };
+                    button.innerHTML = `<span>${originalTexts[button.id] || ''}</span>`;
+                }
+            }
+
+            function handleAnalyzeGreenSpaces(e) {
+                const cityId = e.currentTarget.dataset.cityId;
+                const city = cityData.find(c => c.id === cityId);
+                if (!city) return;
+                const systemPrompt = "You are an expert in urban agriculture, horticulture, and sustainable food systems. Your task is to analyze a city's potential for urban farming in its largest green spaces. For each park you identify, you must calculate the potential food production from a 10% conversion of its area. Use the following planning assumptions for your calculations:\n- Average mixed-use (orchards and vegetables) yield: 9.5 tonnes per hectare per year.\n- Standard food portion size: 0.5 kg.\n\nStructure the output as follows:\n1. A main title (H4).\n2. A bulleted list of 3-4 major parks. For each park, provide:\n    - Its name and approximate size in hectares.\n    - The potential annual food yield in tonnes from converting 10% of its area.\n    - The equivalent number of annual food portions this yield represents.\n3. Two separate bulleted lists for 'Recommended Fruit Trees' and 'Recommended Vegetables' that are well-suited for that city's specific climate.\nBe concise, clear, and present the information logically.";
+                const userQuery = `Please analyze the urban agriculture potential for the city of ${city.name}. Identify its largest green spaces and for each, calculate the potential food production and equivalent food portions from converting 10% of the area. Also, recommend suitable crops for its climate.`;
+                const button = document.getElementById('analyze-green-areas-btn');
+                const outputDiv = document.getElementById('gemini-city-output');
+                callGeminiAPI(systemPrompt, userQuery, button, outputDiv);
+            }
+
+            function handleInterpretCityData(e) {
+                const cityId = e.currentTarget.dataset.cityId;
+                const city = cityData.find(c => c.id === cityId);
+                if (!city) return;
+                const systemPrompt = "You are a data interpretation specialist and urban planning guide. Your task is to explain the CECR (City Edible Conversion Readiness) score and its components to a non-expert user. The tone should be simple, educational, and encouraging. Explain what each metric means in the context of urban agriculture potential. Use Markdown for formatting.";
+                const userQuery = `Please provide a simple interpretation of the following data for the city of ${city.name}:\n\n- **Overall CECR Score: ${city.cecr.toFixed(2)}**\n\nExplain this overall score, and then break down each component:\n- **Poverty Need (PN) Score: ${city.pn_z.toFixed(2)}**: What does this score mean for the city's social need for this project?\n- **Accessibility Bonus (AB) Score: ${city.ab_z.toFixed(2)}**: How does this score reflect the location of green spaces relative to vulnerable populations?\n- **Heat/Health Priority (HP) Score: ${city.hp_z.toFixed(2)}**: What does this value tell us about the city's climate and health challenges?\n- **Green Base (GB) Score: ${city.gb_z.toFixed(2)}**: How does this score indicate the city's existing capacity for green projects?\n\nConclude with a summary of how to understand these scores together.`;
+                const button = document.getElementById('interpret-city-data-btn');
+                const outputDiv = document.getElementById('gemini-city-output');
+                callGeminiAPI(systemPrompt, userQuery, button, outputDiv);
+            }
+            
+            const switchView = (view, city = null) => {
+                currentView = view; cityInfoPanel.classList.add('translate-x-full'); neighborhoodInfoPanel.classList.add('translate-x-full');
+                if (view === 'city') {
+                    cityViewBtn.classList.add('active-toggle'); cityViewBtn.classList.remove('inactive-toggle'); neighborhoodViewBtn.classList.add('inactive-toggle'); neighborhoodViewBtn.classList.remove('active-toggle');
+                    cityControls.classList.remove('hidden'); neighborhoodControls.classList.add('hidden');
+                    cityMarkers.forEach(marker => map.addLayer(marker));
+                    neighborhoodMapView.classList.add('hidden');
+                    map.flyTo([50, 15], 4.5);
+                } else {
+                    selectedCity = city; cityViewBtn.classList.add('inactive-toggle'); cityViewBtn.classList.remove('active-toggle'); neighborhoodViewBtn.classList.add('active-toggle'); neighborhoodViewBtn.classList.remove('inactive-toggle');
+                    cityControls.classList.add('hidden'); neighborhoodControls.classList.remove('hidden');
+                    cityMarkers.forEach(marker => map.removeLayer(marker));
+                    neighborhoodMapView.classList.remove('hidden');
+                    const cityName = city['name_' + currentLanguage] || city.name;
+                    document.getElementById('city-name-label').textContent = cityName;
+                    map.flyTo([city.lat, city.lng], 12);
+                    layerToggles.forEach(t => t.classList.remove('bg-indigo-600', 'text-white'));
+                    document.querySelector('.layer-toggle[data-layer="nsi"]').classList.add('bg-indigo-600', 'text-white');
+                    renderNeighborhoods(city.id);
+                }
+                updateLegend(view);
+            };
+
+            function handleAnalyzeNeighborhood(e) {
+                const cellId = e.currentTarget.dataset.cellId;
+                const cell = neighborhoodData[selectedCity?.id]?.find(c => c.id === cellId);
+                if (!cell) return;
+                const systemPrompt = "You are an expert in micro-scale urban planning, landscape architecture, and sustainable community development. Your task is to analyze a specific neighborhood cell (approx 1km²) and identify its potential for creating micro-orchards and green spaces. You will use publicly available mapping data and satellite imagery information to identify suitable locations.\n\nFor your analysis, you must use the following planning assumptions:\n- A typical micro-orchard plot size is 0.25 hectares.\n- Average mixed-use yield (fruit trees and vegetables): 9.5 tonnes per hectare per year.\n- Standard food portion size: 0.5 kg.\n- Estimated local cooling effect from a new micro-orchard: -1 to -3 °C.\n\nStructure your output as follows:\n1. A main title (H4) for the neighborhood potential analysis.\n2. A short summary paragraph.\n3. A bulleted list detailing the findings:\n    - Estimated number of potential micro-orchard sites (under-used lots, small corridors, etc., ≤0.5 ha).\n    - Total potential annual food production in tonnes based on the number of sites and the assumed yield.\n    - Total equivalent annual food portions.\n    - Estimated local temperature reduction in degrees Celsius.";
+                const userQuery = `Based on typical urban layouts and satellite imagery for a dense European city neighborhood represented by Cell ID: ${cell.id.split('-').pop().toUpperCase()}, please perform a micro-orchard potential analysis. This area has the following characteristics:\n- NSI Score: ${cell.nsi.toFixed(2)}\n- Green Access Deficit: ${cell.gad_p}% of residents lack nearby green space.\n- Heat Burden: ${cell.hb_p}th percentile for summer heat.\n\nIdentify the number of potential sites for micro-orchards (≤0.5 ha each), and based on the planning assumptions, calculate the total potential annual food production in tonnes and the equivalent food portions. Finally, provide an estimate for the local temperature reduction.`;
+                const button = document.getElementById('analyze-neighborhood-btn');
+                const outputDiv = document.getElementById('gemini-neighborhood-output');
+                callGeminiAPI(systemPrompt, userQuery, button, outputDiv);
+            };
+
+            function handleInterpretNeighborhoodData(e) {
+                const cellId = e.currentTarget.dataset.cellId;
+                const cell = neighborhoodData[selectedCity?.id]?.find(c => c.id === cellId);
+                if (!cell) return;
+                const systemPrompt = "You are a data interpretation specialist and community planning guide. Your task is to explain the NSI (NutriShade Index) and its components to a non-expert user. The tone should be simple, educational, and focused on community benefits. Explain what each metric means for selecting a good spot for a micro-orchard. Use Markdown for formatting.";
+                const userQuery = `Please provide a simple interpretation of the following data for Neighborhood Cell ${cell.id.split('-').pop().toUpperCase()}:\n\n- **Overall NSI Score: ${cell.nsi.toFixed(2)}**\n\nExplain this overall score in the context of prioritizing this area for a new micro-orchard, and then break down each component:\n- **Green Access Deficit (GAD%): ${cell.gad_p}%**: What does this percentage mean for the community living here?\n- **Heat Burden (HB): ${cell.hb_p}th percentile**: How does this heat level affect the neighborhood and why does it make a green space important?\n- **Density Boost (DB) Score: ${cell.db_z.toFixed(2)}**: What does this score tell us about the number of people who would benefit from a new orchard here?\n\nConclude with a summary of why a high NSI score indicates a top-priority location.`;
+                const button = document.getElementById('interpret-neighborhood-data-btn');
+                const outputDiv = document.getElementById('gemini-neighborhood-output');
+                callGeminiAPI(systemPrompt, userQuery, button, outputDiv);
+            }
+
+            initMap();
+            
+            const menuToggleBtn = document.getElementById('menu-toggle-btn');
+            const menuOpenIcon = document.getElementById('menu-open-icon');
+            const menuCloseIcon = document.getElementById('menu-close-icon');
+            const controlPanel = document.getElementById('control-panel');
+            const menuOverlay = document.getElementById('menu-overlay');
+            const menuCloseBtnPanel = document.getElementById('menu-close-btn-panel');
+            const guideBtn = document.getElementById('guide-btn');
+            const guideModal = document.getElementById('guide-modal');
+            const closeGuideModal = document.getElementById('close-guide-modal');
+            const apiKeyInput = document.getElementById('api-key-input');
+            const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+            const apiKeyStatus = document.getElementById('api-key-status');
+
+            const toggleMenu = () => {
+                controlPanel.classList.toggle('-translate-x-full');
+                controlPanel.classList.toggle('translate-x-0');
+                menuOverlay.classList.toggle('hidden');
+                menuOpenIcon.classList.toggle('hidden');
+                menuCloseIcon.classList.toggle('hidden');
+            };
+
+            const guideModalContent = document.querySelector('#guide-modal .overflow-y-auto');
+
+            const openGuide = () => {
+                guideModal.classList.remove('hidden');
+                guideModal.classList.add('flex');
+            };
+
+            const closeGuide = () => {
+                guideModal.classList.add('hidden');
+                guideModal.classList.remove('flex');
+            };
+
+            guideBtn.addEventListener('click', openGuide);
+            closeGuideModal.addEventListener('click', closeGuide);
+            guideModal.addEventListener('click', (e) => {
+                if (e.target === guideModal) {
+                    closeGuide();
+                }
+            });
+
+            const checkApiKey = () => {
+                const apiKey = localStorage.getItem('geminiApiKey');
+                const aiButtons = document.querySelectorAll('#interpret-city-data-btn, #analyze-green-areas-btn, #interpret-neighborhood-data-btn, #analyze-neighborhood-btn');
+                if (apiKey) {
+                    apiKeyInput.value = apiKey;
+                    aiButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.title = '';
+                        btn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
+                    });
+                    return true;
+                } else {
+                     apiKeyInput.value = ""; // Clear the input if no key is found
+                     aiButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.title = 'Enter API Key to enable';
+                        btn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
+                    });
+                    return false;
+                }
+            };
+
+            saveApiKeyBtn.addEventListener('click', () => {
+                const apiKey = apiKeyInput.value.trim();
+                if (apiKey) {
+                    localStorage.setItem('geminiApiKey', apiKey);
+                    apiKeyStatus.classList.remove('hidden');
+                    setTimeout(() => apiKeyStatus.classList.add('hidden'), 3000);
+                    checkApiKey();
+                } else {
+                    localStorage.removeItem('geminiApiKey');
+                    checkApiKey();
+                }
+            });
+
+            // Re-check api key status when panels are opened
+            const observer = new MutationObserver((mutations) => {
+                for (let mutation of mutations) {
+                    if (mutation.attributeName === 'class') {
+                        checkApiKey();
+                    }
+                }
+            });
+            observer.observe(cityInfoPanel, { attributes: true });
+            observer.observe(neighborhoodInfoPanel, { attributes: true });
+
+            menuToggleBtn.addEventListener('click', toggleMenu);
+            menuOverlay.addEventListener('click', toggleMenu);
+            menuCloseBtnPanel.addEventListener('click', toggleMenu);
+            
+            window.addEventListener('resize', () => {
+                if(currentLanguage) setLanguage(currentLanguage);
+            });
+
+            cityViewBtn.addEventListener('click', () => switchView('city'));
+            neighborhoodViewBtn.addEventListener('click', () => switchView('neighborhood', selectedCity || cityData.find(c => c.id === 'berlin')));
+            cityRankingList.addEventListener('click', (e) => {
+                const cityEl = e.target.closest('[data-city-id]'); if (cityEl) renderCityInfo(cityData.find(c => c.id === cityEl.dataset.cityId));
+            });
+            hexGrid.addEventListener('click', (e) => {
+                const hexEl = e.target.closest('[data-cell-id]'); if (hexEl && selectedCity) renderNeighborhoodInfo(neighborhoodData[selectedCity.id].find(c => c.id === hexEl.dataset.cellId));
+            });
+            layerToggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    layerToggles.forEach(t => t.classList.remove('bg-indigo-600', 'text-white'));
+                    toggle.classList.add('bg-indigo-600', 'text-white');
+                    renderNeighborhoods(selectedCity.id, toggle.dataset.layer);
+                    updateLegend('neighborhood', toggle.dataset.layer);
+                });
+            });
+            
+            setLanguage('en');
+            switchView('city');
+            checkApiKey();
+        });
+    </script>
+</body>
+</html>
+
