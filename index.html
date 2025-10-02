@@ -121,6 +121,31 @@
         }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #street-view-placeholder { height: 150px; width: 100%; border-radius: 0.5rem; background-color: #1f2937; display: flex; align-items: center; justify-content: center; text-align: center;}
+        
+        /* Styles for new interactive city markers */
+        .pulsing-marker {
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 0 rgba(167, 139, 250, 0.4);
+            animation: pulse 2.5s infinite cubic-bezier(0.66, 0, 0, 1);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 12px rgba(167, 139, 250, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(167, 139, 250, 0);
+            }
+        }
     </style>
 </head>
 <body class="overflow-hidden h-screen">
@@ -298,7 +323,13 @@
         <div class="w-full max-w-3xl h-full max-h-[90vh] glass-panel rounded-lg shadow-lg flex flex-col">
             <header class="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                 <h2 id="guide-title" class="text-xl font-bold text-white">TerraVitalis Guide</h2>
-                <button id="close-guide-modal" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                <div class="flex items-center space-x-4">
+                    <button id="lang-switcher-guide" class="flex items-center space-x-2 glass-panel p-2 rounded-lg hover:bg-gray-700 transition-colors border-indigo-600">
+                        <img id="lang-flag-guide" src="https://flagcdn.com/w20/gb.png" alt="Language flag" class="w-5 h-auto rounded-sm">
+                        <span id="lang-text-guide" class="font-semibold text-sm">EN</span>
+                    </button>
+                    <button id="close-guide-modal" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                </div>
             </header>
             <div class="flex-grow p-6 overflow-y-auto text-gray-300 space-y-6 text-sm sm:text-base leading-relaxed">
                 <!-- Guide content will be injected here -->
@@ -326,35 +357,86 @@
                     disclaimerTitle: "Disclaimer:",
                     disclaimerText: "This is a prototype for the NASA Space Apps Challenge. Data is illustrative, not connected to live NASA sources, and may be incorrect.",
                     guideContent: `
-                        <h3 class="text-lg font-semibold text-indigo-400">Introduction: The Mission</h3>
-                        <p>Welcome to TerraVitalis, a dynamic decision-support interface designed for the Nasa Space Apps Challenge. Our mission is to transform complex NASA Earth observation data into clear, intuitive, and actionable insights. We empower city planners, environmental agencies, and community leaders to strategically implement urban greening projects that enhance food security and build climate resilience.</p>
-                        <p>The tool operates on two interconnected scales: the <strong>City Readiness View</strong> for macro-level strategic planning, and the <strong>Neighborhood Priority View</strong> for targeted, micro-level interventions.</p>
+                        <p>TerraVitalis is a decision-support platform that uses NASA Earth observation and an AI copilot to help cities identify problems and risk areas and to suggest plausible benefits of targeted green projects.</p>
+                        <p class="mt-4">It does not plant trees or enforce policy; it guides planners and communities to act where green space can become more edible, equitable, and cooling—via two indices: <strong>CECR (city scale)</strong> and <strong>NSI (neighborhood scale)</strong>.</p>
 
-                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">How It Works: A Two-Scale Approach</h3>
-
-                        <h4 class="mt-4 text-md font-semibold text-white">1. City Readiness View (The Macro Perspective)</h4>
-                        <p>This is the strategic overview. It helps policymakers decide which cities are most prepared for and would benefit most from large-scale urban greening projects.</p>
-                        <ul class="list-disc list-inside space-y-2 pl-4">
-                            <li><strong>The Interface:</strong> The initial view is a map of Europe. Each city in our dataset is marked with a circle. The size of the circle corresponds to the total area of existing green space, while its color indicates its readiness score.</li>
-                            <li><strong>The Core Metric: CECR Score:</strong> The "City Edible Conversion Readiness" (CECR) score is the engine of this view. It’s a weighted index calculated from four key components, primarily derived from NASA data:
-                                <ul class="list-disc list-inside space-y-1 pl-6 mt-2">
-                                    <li><strong>Poverty Need (PN):</strong> Uses data from NASA's Socioeconomic Data and Applications Center (SEDAC) to identify areas with higher social need for access to fresh food.</li>
-                                    <li><strong>Accessibility Bonus (AB):</strong> Analyzes the proximity of existing green spaces to vulnerable populations, ensuring new projects serve those who need them most.</li>
-                                    <li><strong>Heat/Health Priority (HP):</strong> Uses thermal data from NASA's ECOSTRESS instrument to pinpoint urban heat islands where greening would provide a critical cooling effect.</li>
-                                    <li><strong>Green Base (GB):</strong> Measures the current amount of vegetation using NASA's MODIS satellite data to assess a city's existing green infrastructure.</li>
-                                </ul>
-                            </li>
-                            <li><strong>Interactive Analysis:</strong> On the left, a ranked list of cities allows for quick comparison. Clicking on any city (either on the map or the list) opens a detailed information panel. This panel includes a Radar Chart and Projected Impact estimates.</li>
-                            <li><strong>AI-Powered Insights (Gemini):</strong> Users can get AI-generated explanations of data (Data Interpretation) and analysis of green spaces with crop recommendations.</li>
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">The Two Urban Challenges We Help Address</h3>
+                        <h4 class="mt-4 text-md font-semibold text-white">Underused Green in Big Cities (CECR track)</h4>
+                        <p>Many cities have substantial parkland that is non-productive and often concentrated in wealthier districts. TerraVitalis highlights where converting ~10% of suitable park areas into community-stewarded orchards and vegetable gardens could:</p>
+                        <ul class="list-disc list-inside space-y-2 pl-4 mt-2">
+                            <li>expand local, dignified food access(generating food for people in need),</li>
+                            <li>strengthen social cohesion (care-pacts, volunteer rotas),</li>
+                            <li>support a circular economy (on-site composting, local distribution),</li>
+                            <li>while preserving recreation and enhancing biodiversity.</li>
                         </ul>
 
-                        <h4 class="mt-4 text-md font-semibold text-white">2. Neighborhood Priority View (The Micro Perspective)</h4>
-                        <p>Once a city is selected, users can "Drill Down" to identify which specific neighborhoods are the highest priority for micro-interventions like community orchards or gardens.</p>
-                        <ul class="list-disc list-inside space-y-2 pl-4">
-                            <li><strong>The Interface:</strong> The map view transitions into an abstract hexagonal grid laid over the selected city. Each hexagon represents a neighborhood of approximately 1km².</li>
-                            <li><strong>The Core Metric: NSI Score:</strong> The "NutriShade Index" (NSI) is designed to find areas of critical need. A high NSI score indicates a "green desert". It is calculated from Green Access Deficit (GAD), Heat Burden (HB), and Density Boost (DB).</li>
-                            <li><strong>Data Layer Toggling:</strong> Users can toggle different data overlays on the hex grid to visualize the individual components of the NSI score.</li>
-                            <li><strong>AI-Powered Action Plans (Gemini):</strong> Clicking a specific hexagon allows users to interpret data and analyze potential for micro-orchards, including projected impact on cooling and food production.</li>
+                        <h4 class="mt-4 text-md font-semibold text-white">Green Deserts & Heat Inequality (NSI track)</h4>
+                        <p>Large portions of cities are far from usable green and outside recommended distances, amplifying urban heat and inequality. TerraVitalis pinpoints high-need, high-heat, high-population areas and proposes micro-orchards (small, street-adjacent fruit plantings) that local communities can steward to cool daily routes (schools/clinics/transit) and provide fresh food where it’s needed most.</p>
+
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Intended outcomes (suggested, not guaranteed)</h3>
+                        <p>dignified access to fresh food; cooler, healthier streets with more shade and pollinators; stronger community stewardship; transparent open KPIs (green-access gap ↓, heat ↓, kg & portions ↑, households served ↑).</p>
+                        <p class="mt-4">TerraVitalis estimates these benefits and flags uncertainties; the city decides.</p>
+
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">How It Works — A Two-Scale Approach</h3>
+                        <p>TerraVitalis operates on two connected levels. We start high to choose where to begin, then zoom in to choose where exactly to act.</p>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">Scale 1 — City Readiness View (“Where to start?”)</h4>
+                        <p><strong>Purpose:</strong> Help policymakers and organizations decide which cities are most ready for high-impact edible-greening initiatives.</p>
+                        <div class="mt-2"><strong>What you’re seeing</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li>A regional map (e.g., Europe) with cities as circles.</li>
+                            <li>Circle size = total existing green base.</li>
+                            <li>Circle color = overall readiness (CECR)—warmer colors = higher readiness/need.</li>
+                        </ul>
+                        <div class="mt-2"><strong>The core metric — CECR (City Edible Conversion Readiness)</strong></div>
+                        <p>A single score indicating how primed a city is for edible conversion, derived largely from NASA-aligned data:</p>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Poverty Need (PN):</strong> where help is most needed (food insecurity/deprivation).</li>
+                            <li><strong>Heat/Health Priority (HP):</strong> ECOSTRESS thermal data → severe urban heat islands.</li>
+                            <li><strong>Accessibility Bonus (AB):</strong> whether existing green can serve vulnerable groups (≤600 m to shelters, schools, public housing, parishes).</li>
+                            <li><strong>Green Base (GB):</strong> MODIS vegetation/land-cover baseline.</li>
+                        </ul>
+                        <div class="mt-2"><strong>How to use this view</strong></div>
+                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
+                            <li>Compare cities: Use the ranked list to see who leads on CECR.</li>
+                            <li>Select a city: Click a circle or list item to open the detail panel.</li>
+                            <li>Analyze the data: View component scores, a radar chart (PN/AB/HP/GB), and Projected Impact (annual tonnes & portions if ~10% of parks become edible).</li>
+                        </ol>
+                        <div class="mt-2"><strong>What the AI does here (assistive, not prescriptive)</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Explain:</strong> Plain-language summaries of why a city scored as it did (with data lineage to layers/years).</li>
+                            <li><strong>Recommend:</strong> Climate-fit crop/orchard mixes and phenology windows with range-based yield estimates and assumptions noted.</li>
+                            <li><strong>Scenario:</strong> “What if we convert 15% instead of 10%?” → recalculates projected portions, labor, water demand, and highlights equity impacts.</li>
+                            <li><strong>Compare:</strong> Side-by-side city comparisons (CECR components, uncertainties, “quick win” flags).</li>
+                        </ul>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">Scale 2 — Neighborhood Priority View (“Where exactly?”)</h4>
+                        <p><strong>Purpose:</strong> Identify specific neighborhoods (≈1 km²) where micro-interventions—community gardens, micro-orchards, green roofs—could deliver the greatest human and environmental benefit.</p>
+                        <div class="mt-2"><strong>What you’re seeing</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li>The map switches to a hexagonal grid over the selected city.</li>
+                            <li>Each hex ≈ 1 km²; hex color shows priority based on NSI.</li>
+                        </ul>
+                        <div class="mt-2"><strong>The core metric — NSI (NutriShade Index)</strong></div>
+                        <p>Reveals “green deserts” where small projects yield outsized impact:</p>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Green Access Deficit (GAD):</strong> distance to a usable park (e.g., ≥1 ha within 300 m).</li>
+                            <li><strong>Heat Burden (HB):</strong> local ECOSTRESS surface-temperature percentile (summer).</li>
+                            <li><strong>Density Boost (DB):</strong> how many people benefit (GPWv4/WorldPop).</li>
+                        </ul>
+                        <div class="mt-2"><strong>How to use this view</strong></div>
+                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
+                            <li>Identify hotspots: Warmest-colored hexes = highest NSI.</li>
+                            <li>Select a hex: Click to open the hex detail panel.</li>
+                            <li>Explore layers: Toggle Heat, Green Access, Density to see why it ranks high.</li>
+                            <li>Plan your action: The panel estimates Potential Impact (cooling, annual portions) and offers AI-assisted action plans (layout sketch, 6-fruit mix, irrigation line-lengths, volunteer rota, food-safety SOPs).</li>
+                        </ol>
+                        <div class="mt-2"><strong>What the AI does here (assistive, not prescriptive)</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Interpret:</strong> Explains why a hex is high-priority (cites the layers & thresholds used).</li>
+                            <li><strong>Micro-plans:</strong> Suggests concept layouts (beds/orchard rows), species mix tuned to local climate, and staggered harvest schedules.</li>
+                            <li><strong>Forecast:</strong> Outputs benefit ranges (kg/portions, °C cooling proxies, pollinator habitat indicators) with uncertainty bands and data caveats.</li>
+                            <li><strong>Constraints:</strong> Flags risks (water scarcity, vandalism history, maintenance gaps) and proposes mitigations (drip + mulch, co-ownership rotas, quick-win plantings).</li>
                         </ul>
                     `,
                     cityReadiness: "City Readiness (CECR)",
@@ -427,35 +509,86 @@
                     disclaimerTitle: "Avvertenza:",
                     disclaimerText: "Questo è un prototipo per la NASA Space Apps Challenge. I dati sono illustrativi, non collegati a fonti dati NASA in tempo reale e potrebbero essere errati.",
                     guideContent: `
-                        <h3 class="text-lg font-semibold text-indigo-400">Introduzione: La Missione</h3>
-                        <p>Benvenuti in TerraVitalis, un'interfaccia dinamica di supporto decisionale progettata per la Nasa Space Apps Challenge. La nostra missione è trasformare i complessi dati di osservazione della Terra della NASA in intuizioni chiare, intuitive e attuabili. Diamo potere a pianificatori urbani, agenzie ambientali e leader di comunità per implementare strategicamente progetti di inverdimento urbano che migliorano la sicurezza alimentare e costruiscono la resilienza climatica.</p>
-                        <p>Lo strumento opera su due scale interconnesse: la <strong>Vista Prontezza Città</strong> per la pianificazione strategica a livello macro e la <strong>Vista Priorità di Quartiere</strong> per interventi mirati a livello micro.</p>
+                        <p>TerraVitalis è una piattaforma di supporto decisionale che utilizza l'osservazione della Terra della NASA e un copilota AI per aiutare le città a identificare problemi e aree di rischio e per suggerire i benefici plausibili di progetti ecologici mirati.</p>
+                        <p class="mt-4">Non pianta alberi né impone politiche; guida pianificatori e comunità ad agire dove lo spazio verde può diventare più commestibile, equo e rinfrescante, tramite due indici: <strong>CECR (scala cittadina)</strong> e <strong>NSI (scala di quartiere)</strong>.</p>
 
-                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Come Funziona: Un Approccio su Due Scale</h3>
-
-                        <h4 class="mt-4 text-md font-semibold text-white">1. Vista Prontezza Città (La Prospettiva Macro)</h4>
-                        <p>Questa è la panoramica strategica. Aiuta i decisori politici a stabilire quali città sono più preparate e trarrebbero maggior beneficio da progetti di inverdimento urbano su larga scala.</p>
-                        <ul class="list-disc list-inside space-y-2 pl-4">
-                            <li><strong>L'Interfaccia:</strong> La vista iniziale è una mappa dell'Europa. Ogni città nel nostro set di dati è contrassegnata da un cerchio. La dimensione del cerchio corrisponde all'area totale dello spazio verde esistente, mentre il suo colore indica il punteggio di prontezza.</li>
-                            <li><strong>La Metrica Principale: Punteggio CECR:</strong> Il punteggio "City Edible Conversion Readiness" (CECR) è il motore di questa vista. È un indice ponderato calcolato da quattro componenti chiave, derivati principalmente da dati NASA:
-                                <ul class="list-disc list-inside space-y-1 pl-6 mt-2">
-                                    <li><strong>Necessità Legata alla Povertà (PN):</strong> Utilizza i dati del Socioeconomic Data and Applications Center (SEDAC) della NASA per identificare le aree con maggiore necessità sociale di accesso a cibo fresco.</li>
-                                    <li><strong>Bonus Accessibilità (AB):</strong> Analizza la vicinanza degli spazi verdi esistenti alle popolazioni vulnerabili, garantendo che i nuovi progetti servano coloro che ne hanno più bisogno.</li>
-                                    <li><strong>Priorità Calore/Salute (HP):</strong> Utilizza i dati termici dello strumento ECOSTRESS della NASA per individuare le isole di calore urbane dove l'inverdimento fornirebbe un effetto di raffreddamento critico.</li>
-                                    <li><strong>Base Verde (GB):</strong> Misura la quantità attuale di vegetazione utilizzando i dati satellitari MODIS della NASA per valutare l'infrastruttura verde esistente di una città.</li>
-                                </ul>
-                            </li>
-                            <li><strong>Analisi Interattiva:</strong> Sulla sinistra, un elenco classificato di città consente un rapido confronto. Cliccando su qualsiasi città si apre un pannello informativo dettagliato che include un Grafico Radar e stime di Impatto Proiettato.</li>
-                            <li><strong>Approfondimenti basati su IA (Gemini):</strong> Gli utenti possono ottenere spiegazioni dei dati generate dall'IA (Interpretazione dei Dati) e analisi degli spazi verdi con raccomandazioni sulle colture.</li>
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Le Due Sfide Urbane che Aiutiamo ad Affrontare</h3>
+                        <h4 class="mt-4 text-md font-semibold text-white">Verde Sottoutilizzato nelle Grandi Città (Traccia CECR)</h4>
+                        <p>Molte città hanno considerevoli aree verdi non produttive e spesso concentrate nei quartieri più ricchi. TerraVitalis evidenzia dove la conversione di circa il 10% delle aree verdi idonee in frutteti e orti gestiti dalla comunità potrebbe:</p>
+                        <ul class="list-disc list-inside space-y-2 pl-4 mt-2">
+                            <li>espandere l'accesso locale e dignitoso al cibo (generando cibo per le persone bisognose),</li>
+                            <li>rafforzare la coesione sociale (patti di cura, turni di volontariato),</li>
+                            <li>sostenere un'economia circolare (compostaggio in loco, distribuzione locale),</li>
+                            <li>preservando al contempo le attività ricreative e migliorando la biodiversità.</li>
                         </ul>
 
-                        <h4 class="mt-4 text-md font-semibold text-white">2. Vista Priorità di Quartiere (La Prospettiva Micro)</h4>
-                        <p>Una volta selezionata una città, gli utenti possono "Approfondire" per identificare quali quartieri specifici hanno la massima priorità per micro-interventi come frutteti comunitari o giardini.</p>
-                        <ul class="list-disc list-inside space-y-2 pl-4">
-                            <li><strong>L'Interfaccia:</strong> La vista della mappa si trasforma in una griglia esagonale astratta. Ogni esagono rappresenta un quartiere di circa 1km².</li>
-                            <li><strong>La Metrica Principale: Punteggio NSI:</strong> L'indice "NutriShade Index" (NSI) è progettato per trovare aree di necessità critica. Un punteggio NSI elevato indica un "deserto verde". È calcolato dal Deficit di Accesso al Verde (GAD), dal Carico di Calore (HB) e dall'Aumento per Densità (DB).</li>
-                            <li><strong>Attivazione Livelli Dati:</strong> Gli utenti possono attivare diversi livelli di dati sulla griglia esagonale per visualizzare i singoli componenti del punteggio NSI.</li>
-                            <li><strong>Piani d'Azione basati su IA (Gemini):</strong> Cliccando su un esagono specifico, gli utenti possono interpretare i dati e analizzare il potenziale per micro-frutteti, compreso l'impatto previsto sul raffreddamento e sulla produzione alimentare.</li>
+                        <h4 class="mt-4 text-md font-semibold text-white">Deserti Verdi e Disuguaglianza Termica (Traccia NSI)</h4>
+                        <p>Grandi porzioni di città sono lontane da spazi verdi utilizzabili e al di fuori delle distanze raccomandate, amplificando il calore urbano e la disuguaglianza. TerraVitalis individua aree ad alta necessità, alto calore e alta densità di popolazione e propone micro-frutteti (piccole piantagioni di frutta adiacenti alle strade) che le comunità locali possono gestire per rinfrescare i percorsi quotidiani (scuole/cliniche/trasporti) e fornire cibo fresco dove è più necessario.</p>
+
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Risultati Attesi (suggeriti, non garantiti)</h3>
+                        <p>accesso dignitoso al cibo fresco; strade più fresche e sane con più ombra e impollinatori; una più forte gestione comunitaria; KPI aperti e trasparenti (divario accesso al verde ↓, calore ↓, kg e porzioni ↑, famiglie servite ↑).</p>
+                        <p class="mt-4">TerraVitalis stima questi benefici e segnala le incertezze; la città decide.</p>
+
+                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Come Funziona — Un Approccio su Due Scale</h3>
+                        <p>TerraVitalis opera su due livelli connessi. Partiamo dall'alto per scegliere da dove iniziare, poi ci avviciniamo per decidere dove agire esattamente.</p>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">Scala 1 — Vista Prontezza Città (“Da dove iniziare?”)</h4>
+                        <p><strong>Scopo:</strong> Aiutare i decisori politici e le organizzazioni a decidere quali città sono più pronte per iniziative di inverdimento commestibile ad alto impatto.</p>
+                        <div class="mt-2"><strong>Cosa stai vedendo</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li>Una mappa regionale (es. Europa) con le città rappresentate da cerchi.</li>
+                            <li>Dimensione del cerchio = base verde totale esistente.</li>
+                            <li>Colore del cerchio = prontezza generale (CECR)—colori più caldi = maggiore prontezza/necessità.</li>
+                        </ul>
+                        <div class="mt-2"><strong>La metrica principale — CECR (City Edible Conversion Readiness)</strong></div>
+                        <p>Un singolo punteggio che indica quanto una città è pronta per la conversione commestibile, derivato in gran parte da dati allineati con la NASA:</p>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Necessità di Povertà (PN):</strong> dove l'aiuto è più necessario (insicurezza alimentare/deprivazione).</li>
+                            <li><strong>Priorità Calore/Salute (HP):</strong> dati termici ECOSTRESS → gravi isole di calore urbane.</li>
+                            <li><strong>Bonus Accessibilità (AB):</strong> se il verde esistente può servire gruppi vulnerabili (≤600 m da rifugi, scuole, alloggi pubblici, parrocchie).</li>
+                            <li><strong>Base Verde (GB):</strong> baseline di vegetazione/copertura del suolo MODIS.</li>
+                        </ul>
+                        <div class="mt-2"><strong>Come usare questa vista</strong></div>
+                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
+                            <li>Confronta le città: Usa l'elenco classificato per vedere chi è in testa per CECR.</li>
+                            <li>Seleziona una città: Clicca su un cerchio o un elemento dell'elenco per aprire il pannello di dettaglio.</li>
+                            <li>Analizza i dati: Visualizza i punteggi dei componenti, un grafico a radar (PN/AB/HP/GB) e l'Impatto Proiettato (tonnellate e porzioni annuali se ~10% dei parchi diventa commestibile).</li>
+                        </ol>
+                        <div class="mt-2"><strong>Cosa fa l'IA qui (assistenziale, non prescrittivo)</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Spiega:</strong> Riepiloghi in linguaggio semplice del perché una città ha ottenuto un certo punteggio (con tracciabilità dei dati a layer/anni).</li>
+                            <li><strong>Raccomanda:</strong> Mix di colture/frutteti adatti al clima e finestre fenologiche con stime di rendimento basate su intervalli e ipotesi annotate.</li>
+                            <li><strong>Scenario:</strong> “E se convertissimo il 15% invece del 10%?” → ricalcola le porzioni proiettate, il lavoro, la domanda d'acqua ed evidenzia gli impatti sull'equità.</li>
+                            <li><strong>Confronta:</strong> Confronti fianco a fianco tra città (componenti CECR, incertezze, indicatori di “vittoria rapida”).</li>
+                        </ul>
+
+                        <h4 class="mt-4 text-md font-semibold text-white">Scala 2 — Vista Priorità di Quartiere (“Dove esattamente?”)</h4>
+                        <p><strong>Scopo:</strong> Identificare quartieri specifici (≈1 km²) dove micro-interventi—orti comunitari, micro-frutteti, tetti verdi—potrebbero fornire il massimo beneficio umano e ambientale.</p>
+                        <div class="mt-2"><strong>Cosa stai vedendo</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li>La mappa passa a una griglia esagonale sulla città selezionata.</li>
+                            <li>Ogni esagono ≈ 1 km²; il colore dell'esagono mostra la priorità basata sull'NSI.</li>
+                        </ul>
+                        <div class="mt-2"><strong>La metrica principale — NSI (NutriShade Index)</strong></div>
+                        <p>Rivela “deserti verdi” dove piccoli progetti producono un impatto sproporzionato:</p>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Deficit di Accesso al Verde (GAD):</strong> distanza da un parco utilizzabile (es. ≥1 ha entro 300 m).</li>
+                            <li><strong>Carico di Calore (HB):</strong> percentile della temperatura superficiale locale ECOSTRESS (estate).</li>
+                            <li><strong>Aumento per Densità (DB):</strong> quante persone ne beneficiano (GPWv4/WorldPop).</li>
+                        </ul>
+                        <div class="mt-2"><strong>Come usare questa vista</strong></div>
+                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
+                            <li>Identifica i punti caldi: Gli esagoni dai colori più caldi = NSI più alto.</li>
+                            <li>Seleziona un esagono: Clicca per aprire il pannello di dettaglio dell'esagono.</li>
+                            <li>Esplora i layer: Attiva/disattiva Calore, Accesso al Verde, Densità per capire perché ha una classificazione alta.</li>
+                            <li>Pianifica la tua azione: Il pannello stima l'Impatto Potenziale (raffreddamento, porzioni annuali) e offre piani d'azione assistiti dall'IA (schizzo di layout, mix di 6 frutti, lunghezze delle linee di irrigazione, turni di volontari, SOP per la sicurezza alimentare).</li>
+                        </ol>
+                        <div class="mt-2"><strong>Cosa fa l'IA qui (assistenziale, non prescrittivo)</strong></div>
+                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                            <li><strong>Interpreta:</strong> Spiega perché un esagono è ad alta priorità (cita i layer e le soglie utilizzate).</li>
+                            <li><strong>Micro-piani:</strong> Suggerisce layout concettuali (aiuole/filari di frutteto), mix di specie adattate al clima locale e calendari di raccolta sfalsati.</li>
+                            <li><strong>Previsione:</strong> Fornisce intervalli di benefici (kg/porzioni, proxy di raffreddamento in °C, indicatori di habitat per impollinatori) con fasce di incertezza e avvertenze sui dati.</li>
+                            <li><strong>Vincoli:</strong> Segnala rischi (scarsità d'acqua, cronologia di vandalismi, carenze di manutenzione) e propone mitigazioni (gocciolamento + pacciamatura, turni di co-proprietà, piantagioni a rapido attecchimento).</li>
                         </ul>
                     `,
                     cityReadiness: "Prontezza Città (CECR)",
@@ -811,6 +944,8 @@
 
                 document.getElementById('lang-flag').src = lang === 'en' ? 'https://flagcdn.com/w20/gb.png' : 'https://flagcdn.com/w20/it.png';
                 document.getElementById('lang-text').textContent = lang.toUpperCase();
+                document.getElementById('lang-flag-guide').src = lang === 'en' ? 'https://flagcdn.com/w20/gb.png' : 'https://flagcdn.com/w20/it.png';
+                document.getElementById('lang-text-guide').textContent = lang.toUpperCase();
 
                 const guideModalContent = document.querySelector('#guide-modal .overflow-y-auto');
                 guideModalContent.innerHTML = t.guideContent;
@@ -919,8 +1054,44 @@
                     const colorIntensity = Math.min(1, Math.max(0, (city.cecr - (-0.5)) / 1.8));
                     const color = `rgb(255, ${Math.floor(200 * (1 - colorIntensity))}, ${Math.floor(100 * (1 - colorIntensity))})`;
                     
-                    const marker = L.circleMarker([city.lat, city.lng], { radius: 5 + (city.green_ha / 1000), fillColor: color, color: "#fff", weight: 1.5, opacity: 1, fillOpacity: 0.8 }).addTo(map);
+                    const radius = 5 + (city.green_ha / 1000);
+                    const iconSize = radius * 2;
+
+                    const customIcon = L.divIcon({
+                        html: `<div class="pulsing-marker" style="width: ${iconSize}px; height: ${iconSize}px; background-color: ${color};"></div>`,
+                        className: '', // Prevent default leaflet styles
+                        iconSize: [iconSize, iconSize],
+                        iconAnchor: [radius, radius]
+                    });
+
+                    const marker = L.marker([city.lat, city.lng], { icon: customIcon }).addTo(map);
+
                     marker.on('click', () => renderCityInfo(city));
+
+                    // Add hover effects for desktop for better interactivity feedback
+                    marker.on('mouseover', function (e) {
+                        const iconDiv = e.target.getElement();
+                        if (iconDiv) {
+                            iconDiv.style.zIndex = 1000; // Bring to front
+                            const innerDiv = iconDiv.querySelector('.pulsing-marker');
+                            if (innerDiv) {
+                                innerDiv.style.animationPlayState = 'paused';
+                                innerDiv.style.transform = 'scale(1.25)';
+                            }
+                        }
+                    });
+
+                    marker.on('mouseout', function (e) {
+                        const iconDiv = e.target.getElement();
+                        if (iconDiv) {
+                            const innerDiv = iconDiv.querySelector('.pulsing-marker');
+                            if (innerDiv) {
+                                innerDiv.style.animationPlayState = 'running';
+                                innerDiv.style.transform = 'scale(1)';
+                            }
+                        }
+                    });
+                    
                     cityMarkers.push(marker);
                     
                     const cityName = city['name_' + currentLanguage] || city.name;
@@ -960,19 +1131,19 @@
                     </div>`;
 
                 const impactDetails = `
-                    <div class="bg-gray-800/50 p-4 rounded-lg text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center">
                         <p class="text-sm text-green-300">${t.estFoodProduction}</p>
-                        <p class="text-2xl font-bold text-white">${impactFood.toFixed(0)}</p>
+                        <p class="text-xl font-bold text-white">${impactFood.toFixed(0)}</p>
                         <p class="text-xs text-gray-400">${t.tonnesYear}</p>
                     </div>
-                    <div class="bg-gray-800/50 p-4 rounded-lg text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center">
                         <p class="text-sm text-purple-300">${t.foodRations}</p>
-                        <p class="text-2xl font-bold text-white">${(impactFood * 2000).toLocaleString()}</p>
+                        <p class="text-xl font-bold text-white">${(impactFood * 2000).toLocaleString()}</p>
                         <p class="text-xs text-gray-400">${t.portionsYear}</p>
                     </div>
-                    <div class="bg-gray-800/50 p-4 rounded-lg text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center">
                         <p class="text-sm text-yellow-300">${t.microOrchardEstDim.replace('🌳 ','')}</p>
-                        <p class="text-3xl font-bold text-white">${(city.green_ha * 0.1).toFixed(1)}</p>
+                        <p class="text-2xl font-bold text-white">${(city.green_ha * 0.1).toFixed(1)}</p>
                         <p class="text-xs text-gray-400">ha</p>
                     </div>`;
                 
@@ -1006,7 +1177,7 @@
 
                             <div class="bg-gray-900/50 p-4 rounded-lg">
                                 <h3 class="font-semibold mb-3 text-gray-300">${t.projectedImpact}</h3>
-                                <div class="grid grid-cols-3 gap-3">${impactDetails}</div>
+                                <div class="grid grid-cols-3 gap-2">${impactDetails}</div>
                             </div>
                             
                             <div class="bg-gray-900/50 p-4 rounded-lg">
@@ -1085,19 +1256,19 @@
                 const potentialPortions = potentialFood * 2000;
 
                 const potentialImpactHTML = `
-                    <div class="bg-gray-800/50 p-4 rounded-lg text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center">
                         <p class="text-sm text-yellow-300">${t.estConvertibleArea.replace('🌳 ','')}</p>
-                        <p class="text-3xl font-bold text-white">${convertibleHa.toFixed(1)}</p>
+                        <p class="text-2xl font-bold text-white">${convertibleHa.toFixed(1)}</p>
                         <p class="text-xs text-gray-400">ha</p>
                     </div>
-                    <div class="bg-gray-800/50 p-4 rounded-lg text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center">
                         <p class="text-sm text-green-300">${t.estFoodProduction}</p>
-                        <p class="text-2xl font-bold text-white">${potentialFood.toFixed(1)}</p>
+                        <p class="text-xl font-bold text-white">${potentialFood.toFixed(1)}</p>
                         <p class="text-xs text-gray-400">${t.tonnesYear}</p>
                     </div>
-                    <div class="bg-gray-800/50 p-4 rounded-lg text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-lg text-center">
                         <p class="text-sm text-purple-300">${t.foodRations}</p>
-                        <p class="text-2xl font-bold text-white">${potentialPortions.toLocaleString()}</p>
+                        <p class="text-xl font-bold text-white">${potentialPortions.toLocaleString()}</p>
                         <p class="text-xs text-gray-400">${t.portionsYear}</p>
                     </div>`;
 
@@ -1140,7 +1311,7 @@
 
                         <div class="bg-gray-900/50 p-4 rounded-lg">
                             <h3 class="font-semibold mb-3 text-gray-300">${t.potentialImpact}</h3>
-                            <div class="grid grid-cols-3 gap-3">${potentialImpactHTML}</div>
+                            <div class="grid grid-cols-3 gap-2">${potentialImpactHTML}</div>
                         </div>
 
                         <div class="bg-gray-900/50 p-4 rounded-lg">
@@ -1341,6 +1512,7 @@
             const guideBtn = document.getElementById('guide-btn');
             const guideModal = document.getElementById('guide-modal');
             const closeGuideModal = document.getElementById('close-guide-modal');
+            const langSwitcherGuide = document.getElementById('lang-switcher-guide');
             const apiKeyInput = document.getElementById('api-key-input');
             const saveApiKeyBtn = document.getElementById('save-api-key-btn');
             const apiKeyStatus = document.getElementById('api-key-status');
@@ -1372,6 +1544,7 @@
                     closeGuide();
                 }
             });
+            langSwitcherGuide.addEventListener('click', () => setLanguage(currentLanguage === 'en' ? 'it' : 'en'));
 
             const toggleApiKeyBtn = document.getElementById('toggle-api-key-section-btn');
             const apiKeyContent = document.getElementById('api-key-content');
@@ -1480,13 +1653,14 @@
             setLanguage('en');
             switchView('city');
             checkApiKey();
+
+            // Open guide on first visit
+            if (!localStorage.getItem('terravitalis_visited')) {
+                openGuide();
+                localStorage.setItem('terravitalis_visited', 'true');
+            }
         });
     </script>
 </body>
 </html>
-
-
-
-
-
 
