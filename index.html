@@ -12,10 +12,20 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha26-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
+        html {
+            /* Prevents the entire page from bouncing on mobile */
+            overscroll-behavior: none;
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0a0a0a;
             color: #e5e7eb;
+            /* These properties lock the body in place, creating an app-like feel */
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            overscroll-behavior: none;
         }
         #map-container {
             position: absolute;
@@ -1471,6 +1481,4 @@
     </script>
 </body>
 </html>
-
-
 
