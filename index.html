@@ -260,7 +260,7 @@
             <!-- Gemini API Key Section -->
             <div class="mt-auto pt-4 border-t border-white/10">
                 <div class="flex justify-between items-center">
-                    <p class="text-xs text-gray-500">Version 1.2.1</p>
+                    <p class="text-xs text-gray-500">Version 1.2.3</p>
                     <button id="toggle-api-key-section-btn" class="p-2 rounded-lg hover:bg-gray-700 transition-colors" title="AI Settings">
                         <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     </button>
@@ -283,8 +283,8 @@
 
         <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-[1001] hidden pointer-events-auto"></div>
 
-        <div id="city-info-panel" class="absolute top-28 sm:top-0 bottom-4 sm:bottom-0 left-4 sm:left-auto right-4 sm:right-0 w-auto sm:w-full sm:max-w-md h-auto sm:h-full rounded-2xl sm:rounded-none transform translate-x-full transition-transform duration-500 ease-in-out glass-panel z-[1001] overflow-y-auto pointer-events-auto"></div>
-        <div id="neighborhood-info-panel" class="absolute top-28 sm:top-0 bottom-4 sm:bottom-0 left-4 sm:left-auto right-4 sm:right-0 w-auto sm:w-full sm:max-w-md h-auto sm:h-full rounded-2xl sm:rounded-none transform translate-x-full transition-transform duration-500 ease-in-out glass-panel z-[1001] overflow-y-auto pointer-events-auto"></div>
+        <div id="city-info-panel" class="absolute top-28 sm:top-0 bottom-24 sm:bottom-0 left-4 sm:left-auto right-4 sm:right-0 w-auto sm:w-full sm:max-w-md h-auto sm:h-full rounded-2xl sm:rounded-none transform translate-x-full transition-transform duration-500 ease-in-out glass-panel z-[1001] overflow-hidden pointer-events-auto"></div>
+        <div id="neighborhood-info-panel" class="absolute top-28 sm:top-0 bottom-24 sm:bottom-0 left-4 sm:left-auto right-4 sm:right-0 w-auto sm:w-full sm:max-w-md h-auto sm:h-full rounded-2xl sm:rounded-none transform translate-x-full transition-transform duration-500 ease-in-out glass-panel z-[1001] overflow-hidden pointer-events-auto"></div>
         
         <footer id="legend-and-comparison" class="absolute bottom-0 left-0 w-full p-4 z-[1000] pointer-events-none flex flex-col items-center space-y-2">
             <div id="data-legend" class="w-full max-w-md mx-auto glass-panel rounded-lg p-3 pointer-events-auto"></div>
@@ -980,44 +980,46 @@
                 document.getElementById('selected-city-name-menu').textContent = `: ${cityName}`;
 
                 cityInfoPanel.innerHTML = `
-                    <button id="close-city-panel" class="absolute top-6 right-6 text-gray-400 hover:text-white text-3xl z-20">&times;</button>
-                    <div class="p-6 space-y-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h2 class="text-2xl font-bold">${cityName}</h2>
-                                <p class="text-sm text-gray-400">${t.cecrScore}</p>
+                    <button id="close-city-panel" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-400 hover:text-white text-3xl z-20">&times;</button>
+                    <div class="h-full overflow-y-auto rounded-2xl sm:rounded-none">
+                        <div class="p-6 pt-16 sm:pt-6 space-y-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h2 class="text-2xl font-bold">${cityName}</h2>
+                                    <p class="text-sm text-gray-400">${t.cecrScore}</p>
+                                </div>
+                                <div class="text-right">
+                                     <span class="text-3xl font-bold ${scoreColor.split(' ')[1]}">${city.cecr.toFixed(2)}</span>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                 <span class="text-3xl font-bold ${scoreColor.split(' ')[1]}">${city.cecr.toFixed(2)}</span>
-                            </div>
-                        </div>
 
-                        <div class="bg-gray-900/50 p-4 rounded-lg">
-                            <h3 class="font-semibold mb-3 text-gray-300">${t.cecrCalcTitle}</h3>
-                            <div class="grid grid-cols-2 gap-4 items-center">
-                                <div>${createRadarChart(city)}</div>
-                                <div class="space-y-1">${calculationDetails}</div>
+                            <div class="bg-gray-900/50 p-4 rounded-lg">
+                                <h3 class="font-semibold mb-3 text-gray-300">${t.cecrCalcTitle}</h3>
+                                <div class="grid grid-cols-2 gap-4 items-center">
+                                    <div>${createRadarChart(city)}</div>
+                                    <div class="space-y-1">${calculationDetails}</div>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-white/10">
+                                    <p class="text-xs text-center text-gray-400 font-mono">CECR = 0.4*z(PN) + 0.3*z(AB) + 0.2*z(HP) + 0.1*z(GB)</p>
+                                </div>
                             </div>
-                            <div class="mt-4 pt-3 border-t border-white/10">
-                                <p class="text-xs text-center text-gray-400 font-mono">CECR = 0.4*z(PN) + 0.3*z(AB) + 0.2*z(HP) + 0.1*z(GB)</p>
-                            </div>
-                        </div>
 
-                        <div class="bg-gray-900/50 p-4 rounded-lg">
-                            <h3 class="font-semibold mb-3 text-gray-300">${t.projectedImpact}</h3>
-                            <div class="grid grid-cols-3 gap-3">${impactDetails}</div>
-                        </div>
-                        
-                        <div class="bg-gray-900/50 p-4 rounded-lg">
-                            <h3 class="font-semibold mb-3 text-gray-300">AI Analysis</h3>
-                             <div id="gemini-city-output" class="mb-4 hidden"></div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <button id="interpret-city-data-btn" data-city-id="${city.id}" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.dataInterpretation}</span></button>
-                                <button id="analyze-green-areas-btn" data-city-id="${city.id}" class="w-full bg-green-600 text-white font-bold py-2.5 rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.analyzeGreenSpaces}</span></button>
+                            <div class="bg-gray-900/50 p-4 rounded-lg">
+                                <h3 class="font-semibold mb-3 text-gray-300">${t.projectedImpact}</h3>
+                                <div class="grid grid-cols-3 gap-3">${impactDetails}</div>
                             </div>
+                            
+                            <div class="bg-gray-900/50 p-4 rounded-lg">
+                                <h3 class="font-semibold mb-3 text-gray-300">AI Analysis</h3>
+                                 <div id="gemini-city-output" class="mb-4 hidden"></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button id="interpret-city-data-btn" data-city-id="${city.id}" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.dataInterpretation}</span></button>
+                                    <button id="analyze-green-areas-btn" data-city-id="${city.id}" class="w-full bg-green-600 text-white font-bold py-2.5 rounded-lg hover:bg-green-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.analyzeGreenSpaces}</span></button>
+                                </div>
+                            </div>
+                            
+                            <button id="drill-down-btn" data-city-id="${city.id}" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-500 transition-colors">${t.drillDown}</button>
                         </div>
-                        
-                        <button id="drill-down-btn" data-city-id="${city.id}" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-500 transition-colors">${t.drillDown}</button>
                     </div>`;
 
                 cityInfoPanel.classList.remove('translate-x-full');
@@ -1107,24 +1109,24 @@
                     </div>`;
 
                 neighborhoodInfoPanel.innerHTML = `
-                 <button id="close-neighborhood-panel" class="absolute top-6 right-6 text-gray-400 hover:text-white text-3xl z-20">&times;</button>
-                 <div class="p-6 space-y-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h2 class="text-2xl font-bold">Cell ${cell.id.split('-').pop().toUpperCase()}</h2>
-                                <p class="text-sm text-gray-400">in ${selectedCity['name_' + currentLanguage] || selectedCity.name}</p>
+                 <button id="close-neighborhood-panel" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-400 hover:text-white text-3xl z-20">&times;</button>
+                 <div class="h-full overflow-y-auto rounded-2xl sm:rounded-none">
+                    <div class="p-6 pt-16 sm:pt-6 space-y-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h2 class="text-2xl font-bold">Cell ${cell.id.split('-').pop().toUpperCase()}</h2>
+                                    <p class="text-sm text-gray-400">in ${selectedCity['name_' + currentLanguage] || selectedCity.name}</p>
+                                </div>
+                                <div class="text-right">
+                                     <span class="text-3xl font-bold ${scoreColor.split(' ')[1]}">${cell.nsi.toFixed(2)}</span>
+                                     <p class="text-sm text-gray-400 -mt-1">${t.nsiScore}</p>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                 <span class="text-3xl font-bold ${scoreColor.split(' ')[1]}">${cell.nsi.toFixed(2)}</span>
-                                 <p class="text-sm text-gray-400 -mt-1">${t.nsiScore}</p>
-                            </div>
-                        </div>
 
-                         <button id="back-to-city-view-btn" class="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Back to City View</button>
+                             <button id="back-to-city-view-btn" class="w-full flex items-center justify-center gap-2 text-sm py-2 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Back to City View</button>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="bg-gray-900/50 p-4 rounded-lg">
-                                <h3 class="font-semibold mb-2 text-gray-300">${t.nsiCalcTitle}</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="bg-gray-900/50 p-4 rounded-lg">
                                 ${nsiCalcDetails}
                                 <div class="mt-3 pt-3 border-t border-white/10">
                                     <p class="text-xs text-center text-gray-400 font-mono">NSI = 0.5*z(GAD) + 0.3*z(HB) + 0.2*z(DB)</p>
@@ -1149,9 +1151,9 @@
                         <div class="bg-gray-900/50 p-4 rounded-lg">
                             <h3 class="font-semibold mb-3 text-gray-300">AI Analysis</h3>
                              <div id="gemini-neighborhood-output" class="mb-4 hidden"></div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <button id="interpret-neighborhood-data-btn" data-cell-id="${cell.id}" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.dataInterpretation}</span></button>
-                                <button id="analyze-neighborhood-btn" data-cell-id="${cell.id}" class="w-full bg-teal-600 text-white font-bold py-2.5 rounded-lg hover:bg-teal-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.analyzePotential}</span></button>
+                                    <button id="interpret-neighborhood-data-btn" data-cell-id="${cell.id}" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.dataInterpretation}</span></button>
+                                    <button id="analyze-neighborhood-btn" data-cell-id="${cell.id}" class="w-full bg-teal-600 text-white font-bold py-2.5 rounded-lg hover:bg-teal-500 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" title="Enter API Key to enable"><span>${t.analyzePotential}</span></button>
+                                </div>
                             </div>
                         </div>
                     </div>`;
@@ -1482,6 +1484,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
