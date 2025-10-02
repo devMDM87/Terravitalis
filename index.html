@@ -358,24 +358,20 @@
                     disclaimerText: "This is a prototype for the NASA Space Apps Challenge. Data is illustrative, not connected to live NASA sources, and may be incorrect.",
                     guideContent: `
                         <p>TerraVitalis is a decision-support platform that uses NASA Earth observation and an AI copilot to help cities identify problems and risk areas and to suggest plausible benefits of targeted green projects.</p>
-                        <p class="mt-4">It does not plant trees or enforce policy; it guides planners and communities to act where green space can become more edible, equitable, and cooling—via two indices: <strong>CECR (city scale)</strong> and <strong>NSI (neighborhood scale)</strong>.</p>
-
+                        <p class="mt-4">It does not plant trees or enforce policy; it guides planners and communities to act where green space can become more edible, equitable, and cooling—via two indices: <strong>CECR (City Edible Conversion Readiness)</strong> and <strong>NSI (Neighborhood NutriShade Index)</strong>.</p>
+                        
                         <h3 class="mt-6 text-lg font-semibold text-indigo-400">The Two Urban Challenges We Help Address</h3>
                         <h4 class="mt-4 text-md font-semibold text-white">Underused Green in Big Cities (CECR track)</h4>
                         <p>Many cities have substantial parkland that is non-productive and often concentrated in wealthier districts. TerraVitalis highlights where converting ~10% of suitable park areas into community-stewarded orchards and vegetable gardens could:</p>
                         <ul class="list-disc list-inside space-y-2 pl-4 mt-2">
-                            <li>expand local, dignified food access(generating food for people in need),</li>
+                            <li>expand local, dignified food access (generating food for people in need, in 2024, 8.5% of the EU population were unable to afford a proper meal),</li>
                             <li>strengthen social cohesion (care-pacts, volunteer rotas),</li>
                             <li>support a circular economy (on-site composting, local distribution),</li>
                             <li>while preserving recreation and enhancing biodiversity.</li>
                         </ul>
 
                         <h4 class="mt-4 text-md font-semibold text-white">Green Deserts & Heat Inequality (NSI track)</h4>
-                        <p>Large portions of cities are far from usable green and outside recommended distances, amplifying urban heat and inequality. TerraVitalis pinpoints high-need, high-heat, high-population areas and proposes micro-orchards (small, street-adjacent fruit plantings) that local communities can steward to cool daily routes (schools/clinics/transit) and provide fresh food where it’s needed most.</p>
-
-                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Intended outcomes (suggested, not guaranteed)</h3>
-                        <p>dignified access to fresh food; cooler, healthier streets with more shade and pollinators; stronger community stewardship; transparent open KPIs (green-access gap ↓, heat ↓, kg & portions ↑, households served ↑).</p>
-                        <p class="mt-4">TerraVitalis estimates these benefits and flags uncertainties; the city decides.</p>
+                        <p>Large portions of cities are far from usable green and outside recommended distances, amplifying urban heat and inequality. Heat is a growing health threat; global tracking shows a sharp rise in heat-related risks, with particularly high burdens among older adults and other vulnerable groups. In Europe alone, 47,690 heat-related deaths were estimated for 2023 (second only to 2022). The World Heath Organization recommends proximal access to public green ≥0.5–1 ha within 300 m. TerraVitalis pinpoints high-need, high-heat, high-population areas and proposes micro-orchards (small, street-adjacent fruit plantings) that local communities can steward to cool daily routes (schools/clinics/transit) and provide fresh food where it’s needed most.</p>
 
                         <h3 class="mt-6 text-lg font-semibold text-indigo-400">How It Works — A Two-Scale Approach</h3>
                         <p>TerraVitalis operates on two connected levels. We start high to choose where to begin, then zoom in to choose where exactly to act.</p>
@@ -396,18 +392,10 @@
                             <li><strong>Accessibility Bonus (AB):</strong> whether existing green can serve vulnerable groups (≤600 m to shelters, schools, public housing, parishes).</li>
                             <li><strong>Green Base (GB):</strong> MODIS vegetation/land-cover baseline.</li>
                         </ul>
-                        <div class="mt-2"><strong>How to use this view</strong></div>
-                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
-                            <li>Compare cities: Use the ranked list to see who leads on CECR.</li>
-                            <li>Select a city: Click a circle or list item to open the detail panel.</li>
-                            <li>Analyze the data: View component scores, a radar chart (PN/AB/HP/GB), and Projected Impact (annual tonnes & portions if ~10% of parks become edible).</li>
-                        </ol>
-                        <div class="mt-2"><strong>What the AI does here (assistive, not prescriptive)</strong></div>
+                        <div class="mt-2"><strong>AI functionality</strong></div>
                         <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
                             <li><strong>Explain:</strong> Plain-language summaries of why a city scored as it did (with data lineage to layers/years).</li>
                             <li><strong>Recommend:</strong> Climate-fit crop/orchard mixes and phenology windows with range-based yield estimates and assumptions noted.</li>
-                            <li><strong>Scenario:</strong> “What if we convert 15% instead of 10%?” → recalculates projected portions, labor, water demand, and highlights equity impacts.</li>
-                            <li><strong>Compare:</strong> Side-by-side city comparisons (CECR components, uncertainties, “quick win” flags).</li>
                         </ul>
 
                         <h4 class="mt-4 text-md font-semibold text-white">Scale 2 — Neighborhood Priority View (“Where exactly?”)</h4>
@@ -424,19 +412,11 @@
                             <li><strong>Heat Burden (HB):</strong> local ECOSTRESS surface-temperature percentile (summer).</li>
                             <li><strong>Density Boost (DB):</strong> how many people benefit (GPWv4/WorldPop).</li>
                         </ul>
-                        <div class="mt-2"><strong>How to use this view</strong></div>
-                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
-                            <li>Identify hotspots: Warmest-colored hexes = highest NSI.</li>
-                            <li>Select a hex: Click to open the hex detail panel.</li>
-                            <li>Explore layers: Toggle Heat, Green Access, Density to see why it ranks high.</li>
-                            <li>Plan your action: The panel estimates Potential Impact (cooling, annual portions) and offers AI-assisted action plans (layout sketch, 6-fruit mix, irrigation line-lengths, volunteer rota, food-safety SOPs).</li>
-                        </ol>
-                        <div class="mt-2"><strong>What the AI does here (assistive, not prescriptive)</strong></div>
+                        <div class="mt-2"><strong>AI functionality</strong></div>
                         <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
                             <li><strong>Interpret:</strong> Explains why a hex is high-priority (cites the layers & thresholds used).</li>
                             <li><strong>Micro-plans:</strong> Suggests concept layouts (beds/orchard rows), species mix tuned to local climate, and staggered harvest schedules.</li>
                             <li><strong>Forecast:</strong> Outputs benefit ranges (kg/portions, °C cooling proxies, pollinator habitat indicators) with uncertainty bands and data caveats.</li>
-                            <li><strong>Constraints:</strong> Flags risks (water scarcity, vandalism history, maintenance gaps) and proposes mitigations (drip + mulch, co-ownership rotas, quick-win plantings).</li>
                         </ul>
                     `,
                     cityReadiness: "City Readiness (CECR)",
@@ -510,24 +490,20 @@
                     disclaimerText: "Questo è un prototipo per la NASA Space Apps Challenge. I dati sono illustrativi, non collegati a fonti dati NASA in tempo reale e potrebbero essere errati.",
                     guideContent: `
                         <p>TerraVitalis è una piattaforma di supporto decisionale che utilizza l'osservazione della Terra della NASA e un copilota AI per aiutare le città a identificare problemi e aree di rischio e per suggerire i benefici plausibili di progetti ecologici mirati.</p>
-                        <p class="mt-4">Non pianta alberi né impone politiche; guida pianificatori e comunità ad agire dove lo spazio verde può diventare più commestibile, equo e rinfrescante, tramite due indici: <strong>CECR (scala cittadina)</strong> e <strong>NSI (scala di quartiere)</strong>.</p>
-
+                        <p class="mt-4">Non pianta alberi né impone politiche; guida pianificatori e comunità ad agire dove lo spazio verde può diventare più commestibile, equo e rinfrescante, tramite due indici: <strong>CECR (Prontezza alla Conversione Edibile delle Città)</strong> e <strong>NSI (Indice NutriShade di Quartiere)</strong>.</p>
+                        
                         <h3 class="mt-6 text-lg font-semibold text-indigo-400">Le Due Sfide Urbane che Aiutiamo ad Affrontare</h3>
                         <h4 class="mt-4 text-md font-semibold text-white">Verde Sottoutilizzato nelle Grandi Città (Traccia CECR)</h4>
                         <p>Molte città hanno considerevoli aree verdi non produttive e spesso concentrate nei quartieri più ricchi. TerraVitalis evidenzia dove la conversione di circa il 10% delle aree verdi idonee in frutteti e orti gestiti dalla comunità potrebbe:</p>
                         <ul class="list-disc list-inside space-y-2 pl-4 mt-2">
-                            <li>espandere l'accesso locale e dignitoso al cibo (generando cibo per le persone bisognose),</li>
+                            <li>espandere l'accesso locale e dignitoso al cibo (generando cibo per le persone bisognose, nel 2024, l'8,5% della popolazione dell'UE non poteva permettersi un pasto adeguato),</li>
                             <li>rafforzare la coesione sociale (patti di cura, turni di volontariato),</li>
                             <li>sostenere un'economia circolare (compostaggio in loco, distribuzione locale),</li>
                             <li>preservando al contempo le attività ricreative e migliorando la biodiversità.</li>
                         </ul>
 
                         <h4 class="mt-4 text-md font-semibold text-white">Deserti Verdi e Disuguaglianza Termica (Traccia NSI)</h4>
-                        <p>Grandi porzioni di città sono lontane da spazi verdi utilizzabili e al di fuori delle distanze raccomandate, amplificando il calore urbano e la disuguaglianza. TerraVitalis individua aree ad alta necessità, alto calore e alta densità di popolazione e propone micro-frutteti (piccole piantagioni di frutta adiacenti alle strade) che le comunità locali possono gestire per rinfrescare i percorsi quotidiani (scuole/cliniche/trasporti) e fornire cibo fresco dove è più necessario.</p>
-
-                        <h3 class="mt-6 text-lg font-semibold text-indigo-400">Risultati Attesi (suggeriti, non garantiti)</h3>
-                        <p>accesso dignitoso al cibo fresco; strade più fresche e sane con più ombra e impollinatori; una più forte gestione comunitaria; KPI aperti e trasparenti (divario accesso al verde ↓, calore ↓, kg e porzioni ↑, famiglie servite ↑).</p>
-                        <p class="mt-4">TerraVitalis stima questi benefici e segnala le incertezze; la città decide.</p>
+                        <p>Grandi porzioni di città sono lontane da spazi verdi utilizzabili e al di fuori delle distanze raccomandate, amplificando il calore urbano e la disuguaglianza. Il caldo è una minaccia crescente per la salute; il monitoraggio globale mostra un forte aumento dei rischi legati al calore, con oneri particolarmente elevati tra gli anziani e altri gruppi vulnerabili. Solo in Europa, per il 2023 sono stati stimati 47.690 decessi legati al calore (secondo solo al 2022). L'Organizzazione Mondiale della Sanità raccomanda un accesso prossimo a spazi verdi pubblici ≥0,5–1 ha entro 300 m. TerraVitalis individua aree ad alta necessità, alto calore e alta densità di popolazione e propone micro-frutteti (piccole piantagioni di frutta adiacenti alle strade) che le comunità locali possono gestire per rinfrescare i percorsi quotidiani (scuole/cliniche/trasporti) e fornire cibo fresco dove è più necessario.</p>
 
                         <h3 class="mt-6 text-lg font-semibold text-indigo-400">Come Funziona — Un Approccio su Due Scale</h3>
                         <p>TerraVitalis opera su due livelli connessi. Partiamo dall'alto per scegliere da dove iniziare, poi ci avviciniamo per decidere dove agire esattamente.</p>
@@ -540,7 +516,7 @@
                             <li>Dimensione del cerchio = base verde totale esistente.</li>
                             <li>Colore del cerchio = prontezza generale (CECR)—colori più caldi = maggiore prontezza/necessità.</li>
                         </ul>
-                        <div class="mt-2"><strong>La metrica principale — CECR (City Edible Conversion Readiness)</strong></div>
+                        <div class="mt-2"><strong>La metrica principale — CECR (Prontezza alla Conversione Edibile delle Città)</strong></div>
                         <p>Un singolo punteggio che indica quanto una città è pronta per la conversione commestibile, derivato in gran parte da dati allineati con la NASA:</p>
                         <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
                             <li><strong>Necessità di Povertà (PN):</strong> dove l'aiuto è più necessario (insicurezza alimentare/deprivazione).</li>
@@ -548,18 +524,10 @@
                             <li><strong>Bonus Accessibilità (AB):</strong> se il verde esistente può servire gruppi vulnerabili (≤600 m da rifugi, scuole, alloggi pubblici, parrocchie).</li>
                             <li><strong>Base Verde (GB):</strong> baseline di vegetazione/copertura del suolo MODIS.</li>
                         </ul>
-                        <div class="mt-2"><strong>Come usare questa vista</strong></div>
-                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
-                            <li>Confronta le città: Usa l'elenco classificato per vedere chi è in testa per CECR.</li>
-                            <li>Seleziona una città: Clicca su un cerchio o un elemento dell'elenco per aprire il pannello di dettaglio.</li>
-                            <li>Analizza i dati: Visualizza i punteggi dei componenti, un grafico a radar (PN/AB/HP/GB) e l'Impatto Proiettato (tonnellate e porzioni annuali se ~10% dei parchi diventa commestibile).</li>
-                        </ol>
-                        <div class="mt-2"><strong>Cosa fa l'IA qui (assistenziale, non prescrittivo)</strong></div>
-                        <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
+                        <div class="mt-2"><strong>Funzionalità AI</strong></div>
+                         <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
                             <li><strong>Spiega:</strong> Riepiloghi in linguaggio semplice del perché una città ha ottenuto un certo punteggio (con tracciabilità dei dati a layer/anni).</li>
                             <li><strong>Raccomanda:</strong> Mix di colture/frutteti adatti al clima e finestre fenologiche con stime di rendimento basate su intervalli e ipotesi annotate.</li>
-                            <li><strong>Scenario:</strong> “E se convertissimo il 15% invece del 10%?” → ricalcola le porzioni proiettate, il lavoro, la domanda d'acqua ed evidenzia gli impatti sull'equità.</li>
-                            <li><strong>Confronta:</strong> Confronti fianco a fianco tra città (componenti CECR, incertezze, indicatori di “vittoria rapida”).</li>
                         </ul>
 
                         <h4 class="mt-4 text-md font-semibold text-white">Scala 2 — Vista Priorità di Quartiere (“Dove esattamente?”)</h4>
@@ -569,26 +537,18 @@
                             <li>La mappa passa a una griglia esagonale sulla città selezionata.</li>
                             <li>Ogni esagono ≈ 1 km²; il colore dell'esagono mostra la priorità basata sull'NSI.</li>
                         </ul>
-                        <div class="mt-2"><strong>La metrica principale — NSI (NutriShade Index)</strong></div>
+                        <div class="mt-2"><strong>La metrica principale — NSI (Indice NutriShade)</strong></div>
                         <p>Rivela “deserti verdi” dove piccoli progetti producono un impatto sproporzionato:</p>
                         <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
                             <li><strong>Deficit di Accesso al Verde (GAD):</strong> distanza da un parco utilizzabile (es. ≥1 ha entro 300 m).</li>
                             <li><strong>Carico di Calore (HB):</strong> percentile della temperatura superficiale locale ECOSTRESS (estate).</li>
                             <li><strong>Aumento per Densità (DB):</strong> quante persone ne beneficiano (GPWv4/WorldPop).</li>
                         </ul>
-                        <div class="mt-2"><strong>Come usare questa vista</strong></div>
-                        <ol class="list-decimal list-inside space-y-1 pl-4 mt-1">
-                            <li>Identifica i punti caldi: Gli esagoni dai colori più caldi = NSI più alto.</li>
-                            <li>Seleziona un esagono: Clicca per aprire il pannello di dettaglio dell'esagono.</li>
-                            <li>Esplora i layer: Attiva/disattiva Calore, Accesso al Verde, Densità per capire perché ha una classificazione alta.</li>
-                            <li>Pianifica la tua azione: Il pannello stima l'Impatto Potenziale (raffreddamento, porzioni annuali) e offre piani d'azione assistiti dall'IA (schizzo di layout, mix di 6 frutti, lunghezze delle linee di irrigazione, turni di volontari, SOP per la sicurezza alimentare).</li>
-                        </ol>
-                        <div class="mt-2"><strong>Cosa fa l'IA qui (assistenziale, non prescrittivo)</strong></div>
+                         <div class="mt-2"><strong>Funzionalità AI</strong></div>
                         <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
                             <li><strong>Interpreta:</strong> Spiega perché un esagono è ad alta priorità (cita i layer e le soglie utilizzate).</li>
                             <li><strong>Micro-piani:</strong> Suggerisce layout concettuali (aiuole/filari di frutteto), mix di specie adattate al clima locale e calendari di raccolta sfalsati.</li>
                             <li><strong>Previsione:</strong> Fornisce intervalli di benefici (kg/porzioni, proxy di raffreddamento in °C, indicatori di habitat per impollinatori) con fasce di incertezza e avvertenze sui dati.</li>
-                            <li><strong>Vincoli:</strong> Segnala rischi (scarsità d'acqua, cronologia di vandalismi, carenze di manutenzione) e propone mitigazioni (gocciolamento + pacciamatura, turni di co-proprietà, piantagioni a rapido attecchimento).</li>
                         </ul>
                     `,
                     cityReadiness: "Prontezza Città (CECR)",
@@ -1663,7 +1623,5 @@
     </script>
 </body>
 </html>
-
-
 
 
