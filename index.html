@@ -442,7 +442,7 @@
             <!-- Gemini API Key Section -->
             <div class="mt-auto pt-4 border-t border-white/10">
                 <div class="flex justify-between items-center">
-                    <p class="text-xs text-gray-500">Version 1.3.0</p>
+                    <p class="text-xs text-gray-500">Version 1.3.6</p>
                     <button id="toggle-api-key-section-btn" class="p-2 rounded-lg hover:bg-gray-700 transition-colors" title="AI Settings">
                         <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     </button>
@@ -773,7 +773,7 @@
                     potentialImpact: "Potential Impact",
                     estConvertibleArea: "🌳 Est. Convertible Area",
                     onePercentCellArea: "(Based on 1% of cell area)",
-                    analyzeGreenSpaces: "🌳 Analyze Major Green Spaces",
+                    analyzeGreenSpaces: "🌳 Analyze Benefits",
                     dataInterpretation: "✨ Data Interpretation",
                     drillDown: "🔬 Drill Down to Neighborhoods",
                     nsiFormulaTitle: "NSI (NutriShade Index) Formula",
@@ -917,7 +917,7 @@
                     potentialImpact: "Impatto Potenziale",
                     estConvertibleArea: "🌳 Area Convertibile Stimata",
                     onePercentCellArea: "(Basato sull'1% dell'area della cella)",
-                    analyzeGreenSpaces: "🌳 Analizza Aree Verdi Principali",
+                    analyzeGreenSpaces: "🌳 Analizza Benefici",
                     dataInterpretation: "✨ Interpretazione Dati",
                     drillDown: "🔬 Analisi di Quartiere",
                     nsiFormulaTitle: "Formula NSI (Indice NutriShade)",
@@ -967,6 +967,24 @@
             // This consolidated data structure can be loaded from an external file or API endpoint.
             const consolidatedAppData = {
               "cities": [
+                {
+                  "id": "new-york",
+                  "name": "New York",
+                  "name_it": "New York",
+                  "pn_z": 1.1, "ab_z": -0.1, "hp_z": 1.3, "gb_z": 0.8,
+                  "green_ha": 12000, "lat": 40.7128, "lng": -74.0060, "avgSummerC": 29, "population": 8400000,
+                  "cecr_score": 0.75,
+                  "neighborhood_cells": Array.from({ length: 80 }, (_, i) => ({ "id": `new-york-cell-${i}`, "nsi_score": (Math.random() + 0.4) * 1.4, "gad_z": Math.random() * 1.8 - 0.2, "hb_z": Math.random() * 2.2 - 0.1, "db_z": Math.random() * 2.8, "population": 105000 + Math.floor(Math.random() * 30000) }))
+                },
+                {
+                  "id": "washington-dc",
+                  "name": "Washington D.C.",
+                  "name_it": "Washington D.C.",
+                  "pn_z": 0.8, "ab_z": 0.6, "hp_z": 1.5, "gb_z": 1.0,
+                  "green_ha": 3000, "lat": 38.9072, "lng": -77.0369, "avgSummerC": 31, "population": 700000,
+                  "cecr_score": 0.90,
+                  "neighborhood_cells": Array.from({ length: 80 }, (_, i) => ({ "id": `washington-dc-cell-${i}`, "nsi_score": (Math.random() + 0.5) * 1.5, "gad_z": Math.random() * 1.9, "hb_z": Math.random() * 2.4, "db_z": Math.random() * 1.5, "population": 8750 + Math.floor(Math.random() * 2000) }))
+                },
                 {
                   "id": "london",
                   "name": "London",
@@ -1774,7 +1792,7 @@
                 const impactFood = (city.green_ha * 0.1 * 9.5);
                 const peopleSustained = ((impactFood * 2000) / 365) / 2;
 
-                const systemPrompt = "You are an expert in urban agriculture, horticulture, sustainable food systems, and project management. Your task is to provide a multi-faceted analysis for a city's potential for urban farming. Use Markdown for formatting.\n\nStructure the output as follows:\n1.  **Park-Specific Analysis:**\n    * A main title (H4).\n    * A bulleted list of 3-4 major parks. For each, provide its name, approximate size (ha), potential annual food yield (tonnes) from converting 10% of its area (at 9.5 tonnes/ha/year), and equivalent annual food portions (at 0.5kg/portion).\n2.  **City-Wide Context & Strategic Impact:**\n    * A main title (H4).\n    * Analyze the collective contribution of these parks. Compare their combined potential yield to the city's overall projected impact. Discuss how this initiative contributes to the needs of the city's total population.\n3.  **Stakeholder Benefits:**\n    * A main title (H4).\n    * Outline specific benefits for each stakeholder group: **Influencers**, **Decision-Makers**, **Implementers**, **Collaborators**, and **Supporters**.\n4.  **Estimated Costs & Considerations:**\n    * A main title (H4).\n    * Provide a rough, nation-specific cost estimation for the project (e.g., 'for a project in Germany, costs might range from...'). Briefly break down key costs (soil, irrigation, saplings, tools).\n    * Conclude with a key consideration for implementation.\n\nBe concise, clear, and present the information logically.";
+                const systemPrompt = "You are an expert in urban agriculture, horticulture, sustainable food systems, and project management. Your task is to provide a multi-faceted analysis for a city's potential for urban farming, with a special focus on social impact. Use Markdown for formatting.\n\nStructure the output as follows:\n1.  **Park-Specific Analysis:**\n    * A main title (H4).\n    * A bulleted list of 3-4 major parks. For each, provide its name, approximate size (ha), potential annual food yield (tonnes) from converting 10% of its area (at 9.5 tonnes/ha/year), and equivalent annual food portions (at 0.5kg/portion).\n2.  **City-Wide Context & Social Impact:**\n    * A main title (H4).\n    * Analyze the collective contribution of these parks. Compare their combined potential yield to the city's overall projected impact. Discuss how this initiative contributes to the needs of the city's total population, **emphasizing that the food produced should be primarily directed to sustain vulnerable groups like low-income families and school children.**\n3.  **Stakeholder Benefits:**\n    * A main title (H4).\n    * Outline specific benefits for each stakeholder group: **Influencers**, **Decision-Makers**, **Implementers**, **Collaborators**, and **Supporters**, incorporating the social focus.\n4.  **Estimated Costs & Considerations:**\n    * A main title (H4).\n    * Provide a rough, nation-specific cost estimation for the project (e.g., 'for a project in Germany, costs might range from...'). Briefly break down key costs (soil, irrigation, saplings, tools).\n    * Conclude with a key consideration for implementation, related to the distribution logistics to schools and social services.\n\nBe concise, clear, and present the information logically.";
                 const userQuery = `Please provide a strategic analysis for converting green spaces in ${city.name}.
                 
                 City-wide Data for Context:
@@ -1784,9 +1802,9 @@
                 
                 Your analysis should:
                 1. Identify the largest green spaces and calculate their individual food production potential.
-                2. Put the park-specific potential into the context of the city-wide data provided above.
-                3. Detail the benefits for key stakeholder groups.
-                4. Provide a rough cost estimation for project implementation in that country.`;
+                2. Put the park-specific potential into the context of the city-wide data provided above, with a special consideration that the food produced should be used to sustain mainly poor people and school children.
+                3. Detail the benefits for key stakeholder groups, keeping this social mission in mind.
+                4. Provide a rough cost estimation for project implementation in that country, including any logistical considerations for distributing food to social centers and schools.`;
                 const button = e.currentTarget;
                 const outputDiv = document.getElementById('gemini-city-output');
                 callGeminiAPI(systemPrompt, userQuery, button, outputDiv);
@@ -2102,6 +2120,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
