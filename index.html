@@ -442,7 +442,7 @@
             <!-- Gemini API Key Section -->
             <div class="mt-auto pt-4 border-t border-white/10">
                 <div class="flex justify-between items-center">
-                    <p class="text-xs text-gray-500">Version 1.3.7</p>
+                    <p class="text-xs text-gray-500">Version 1.3.8</p>
                     <button id="toggle-api-key-section-btn" class="p-2 rounded-lg hover:bg-gray-700 transition-colors" title="AI Settings">
                         <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     </button>
@@ -773,7 +773,7 @@
                     potentialImpact: "Potential Impact",
                     estConvertibleArea: "🌳 Est. Convertible Area",
                     onePercentCellArea: "(Based on 1% of cell area)",
-                    analyzeGreenSpaces: "🌳 Analyze Benefits",
+                    analyzeGreenSpaces: "🌳 Benefits & Circular Economy",
                     dataInterpretation: "✨ Data Interpretation",
                     drillDown: "🔬 Drill Down to Neighborhoods",
                     nsiFormulaTitle: "NSI (NutriShade Index) Formula",
@@ -786,7 +786,7 @@
                     city: "City",
                     avgSummerTemp: "Avg. Summer Temp",
                     estCellPopulation: "Est. Cell Population",
-                    analyzePotential: "✨ Potential Benefits",
+                    analyzePotential: "✨ Benefits & Circular Economy",
                     enableAIFeatures: "Enable AI Features",
                     enterApiKey: "To unlock the AI-powered analysis, please enter your Google Gemini API key below.",
                     save: "Save",
@@ -1803,7 +1803,7 @@
                 Your analysis should:
                 1. Identify the largest green spaces and calculate their individual food production potential.
                 2. Put the park-specific potential into the context of the city-wide data provided above, with a special consideration that the food produced should be used to sustain mainly poor people and school children.
-                3. Detail the benefits for key stakeholder groups, keeping this social mission in mind.
+                3. Detail the benefits for key stakeholder groups,How the circular economy ties to the benefits you care about Community & poor households,City, Health systems, Public safety,Climate resilience. 
                 4. Provide a rough cost estimation for project implementation in that country, including any logistical considerations for distributing food to social centers and schools.`;
                 const button = e.currentTarget;
                 const outputDiv = document.getElementById('gemini-city-output');
@@ -1894,7 +1894,7 @@
                 const potentialFood = convertibleHa * 9.5;
                 const potentialPortions = potentialFood * 2000;
 
-                const systemPrompt = "You are an expert in micro-scale urban planning and sustainable community development. Your task is to analyze a neighborhood's potential for greening projects. Your analysis must start by explaining how the 'Potential Impact' figures are calculated based on the provided NSI score and planning assumptions. Then, build upon that with a more detailed plan. Use Markdown for clear formatting.";
+                const systemPrompt = "You are an expert in micro-scale urban planning and sustainable community development. Your task is to analyze a neighborhood's potential for greening projects. Your analysis must start by explaining how the 'Potential Impact' figures are calculated based on the provided NSI score and planning assumptions. Then, build upon that with a more detailed plan. Use Markdown for clear formatting.How the circular economy ties to the benefits you care about Community & poor households,City, Health systems, Public safety,Climate resilience.";
                 const userQuery = `Analyze the potential benefits for Neighborhood Cell ${cell.id.split('-').pop().toUpperCase()} in ${selectedCity.name}. This area has the following data:\n- NSI Score: ${cell.nsi.toFixed(2)}\n- Est. Convertible Area: ${convertibleHa.toFixed(1)} ha\n- Est. Annual Food Production: ${potentialFood.toFixed(1)} tonnes\n- Est. Annual Food Portions: ${Math.round(potentialPortions).toLocaleString()}\n\nFirst, explain how these 'Potential Impact' figures are calculated using these assumptions:\n- **Est. Convertible Area** = 2.0 ha / (1 + NSI Score)\n- **Est. Food Production** = Convertible Area * 9.5 tonnes/ha/year\n- **Est. Food Portions** = Food Production (in kg) / 0.5 kg/portion\n\nThen, provide a more detailed analysis. Suggest specific types of interventions (e.g., street-side micro-orchards, community garden plots), recommend a mix of 3-4 climate-appropriate fruit trees or vegetables for ${selectedCity.name}, and estimate the potential local cooling effect in degrees Celsius.`;
                 const button = e.currentTarget;
                 const outputDiv = document.getElementById('gemini-neighborhood-output');
